@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:vibetreck/core/providers/repositories.dart';
 import 'package:vibetreck/core/routing/app_scaffold.dart';
 import 'package:vibetreck/features/auth/presentation/auth_screen.dart';
 import 'package:vibetreck/features/auth/presentation/splash_screen.dart';
@@ -18,9 +21,29 @@ final navigatorKeyProvider = Provider<GlobalKey<NavigatorState>>(
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final navKey = ref.watch(navigatorKeyProvider);
+  final authRepository = ref.watch(authRepositoryProvider);
+  final refreshListenable = GoRouterRefreshStream(
+    authRepository.authStateChanges(),
+  );
+
+  ref.onDispose(refreshListenable.dispose);
+
   return GoRouter(
     navigatorKey: navKey,
     initialLocation: '/',
+    refreshListenable: refreshListenable,
+    redirect: (_, state) {
+      final isLoggedIn = authRepository.currentUser() != null;
+      final path = state.uri.path;
+      final isAuthPath = path == '/auth';
+      final isRoot = path == '/';
+      final isPublic = isAuthPath || isRoot;
+
+      if (!isLoggedIn && !isPublic) return '/auth';
+      if (isLoggedIn && (isAuthPath || isRoot)) return '/home';
+      if (!isLoggedIn && isRoot) return '/auth';
+      return null;
+    },
     routes: [
       GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
       GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
@@ -77,3 +100,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+class GoRouterRefreshStream extends ChangeNotifier {
+  GoRouterRefreshStream(Stream<dynamic> stream) {
+    _subscription = stream.asBroadcastStream().listen((_) => notifyListeners());
+  }
+
+  late final StreamSubscription<dynamic> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}

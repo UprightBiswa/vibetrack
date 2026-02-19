@@ -1,4 +1,4 @@
-package com.example.vibetreck
+package com.vibetrack.app
 
 import io.flutter.embedding.android.FlutterActivity
 

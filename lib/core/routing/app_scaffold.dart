@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vibetreck/core/network/network_status_provider.dart';
 
-class AppScaffold extends StatelessWidget {
+class AppScaffold extends ConsumerWidget {
   const AppScaffold({
     super.key,
     required this.child,
@@ -21,10 +23,30 @@ class AppScaffold extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isOnline = ref.watch(isOnlineProvider);
     final selected = _tabs.indexWhere((path) => location.startsWith(path));
     return Scaffold(
-      body: SafeArea(child: child),
+      body: SafeArea(
+        child: Column(
+          children: [
+            if (!isOnline)
+              Container(
+                width: double.infinity,
+                color: Colors.redAccent.withValues(alpha: 0.22),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                child: const Text(
+                  'Offline mode: some features may not sync.',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            Expanded(child: child),
+          ],
+        ),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: selected < 0 ? 0 : selected,
         onDestinationSelected: onTapTab,

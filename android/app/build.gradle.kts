@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.vibetreck"
+    namespace = "com.vibetrack.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -20,14 +20,14 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.vibetreck"
+        applicationId = "com.vibetrack.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["MAPBOX_PUBLIC_TOKEN"] = project.findProperty("MAPBOX_PUBLIC_TOKEN") as? String ?: ""
     }
 
     buildTypes {

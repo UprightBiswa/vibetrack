@@ -89,11 +89,24 @@ class TrackingController extends Notifier<TrackingState> {
   }
 
   Future<void> start() async {
-    final permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      throw Exception('Location permission denied');
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      throw Exception('Location service is disabled. Enable GPS and retry.');
     }
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied) {
+      throw Exception('Location permission denied.');
+    }
+    if (permission == LocationPermission.deniedForever) {
+      throw Exception(
+        'Location permission denied forever. Open app settings to continue.',
+      );
+    }
+    await _positionSub?.cancel();
+    _ticker?.cancel();
     state = TrackingState.initial.copyWith(
       running: true,
       startedAt: DateTime.now(),
@@ -102,7 +115,12 @@ class TrackingController extends Notifier<TrackingState> {
       if (!state.running || state.paused) return;
       state = state.copyWith(durationS: state.durationS + 1);
     });
-    _positionSub = Geolocator.getPositionStream().listen(_onPosition);
+    _positionSub = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 5,
+      ),
+    ).listen(_onPosition);
   }
 
   void pause() => state = state.copyWith(paused: true);

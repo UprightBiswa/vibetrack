@@ -13,6 +13,10 @@ Future<void> main() async {
     await Supabase.initialize(
       url: env.supabaseUrl,
       anonKey: env.supabaseAnonKey,
+      authOptions: const FlutterAuthClientOptions(
+        authFlowType: AuthFlowType.pkce,
+        autoRefreshToken: true,
+      ),
     );
   }
   if (env.hasMapboxToken) {

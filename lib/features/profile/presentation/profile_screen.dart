@@ -11,17 +11,16 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authUserProvider).asData?.value;
     final profile = ref.watch(currentProfileProvider).asData?.value;
+    final rawName = (profile?.username ?? '').trim();
+    final avatarInitial = rawName.isEmpty
+        ? 'R'
+        : rawName.characters.first.toUpperCase();
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          CircleAvatar(
-            radius: 34,
-            child: Text(
-              (profile?.username ?? 'R').substring(0, 1).toUpperCase(),
-            ),
-          ),
+          CircleAvatar(radius: 34, child: Text(avatarInitial)),
           const SizedBox(height: 12),
           Text(
             profile?.username ?? 'Rider',

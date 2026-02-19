@@ -7,14 +7,17 @@ class AppEnv {
     required this.supabaseUrl,
     required this.supabaseAnonKey,
     required this.mapboxPublicToken,
+    required this.mapboxDownloadsToken,
   });
 
   final String supabaseUrl;
   final String supabaseAnonKey;
   final String mapboxPublicToken;
+  final String mapboxDownloadsToken;
 
   bool get hasSupabase => supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
   bool get hasMapboxToken => mapboxPublicToken.isNotEmpty;
+  bool get hasMapboxDownloadsToken => mapboxDownloadsToken.isNotEmpty;
 
   static AppEnv fromDefines() {
     return const AppEnv(
@@ -25,6 +28,10 @@ class AppEnv {
       ),
       mapboxPublicToken: String.fromEnvironment(
         'MAPBOX_PUBLIC_TOKEN',
+        defaultValue: '',
+      ),
+      mapboxDownloadsToken: String.fromEnvironment(
+        'MAPBOX_DOWNLOADS_TOKEN',
         defaultValue: '',
       ),
     );

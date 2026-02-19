@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vibetreck/core/network/network_status_provider.dart';
 import 'package:vibetreck/core/providers/repositories.dart';
 import 'package:vibetreck/features/auth/application/auth_controller.dart';
 import 'package:vibetreck/shared/models/feed_post.dart';
@@ -23,6 +24,9 @@ class FeedActions {
     required String caption,
     required Map<String, dynamic> statsJson,
   }) async {
+    if (!_ref.read(isOnlineProvider)) {
+      throw Exception('No internet connection. Try again when online.');
+    }
     final user = _ref.read(authUserProvider).asData?.value;
     if (user == null) throw Exception('User not found');
     final post = FeedPost(
@@ -42,6 +46,9 @@ class FeedActions {
   }
 
   Future<void> like(String postId) async {
+    if (!_ref.read(isOnlineProvider)) {
+      throw Exception('No internet connection.');
+    }
     await _ref.read(feedRepositoryProvider).likePost(postId);
     _ref.invalidate(feedProvider);
   }

@@ -45,7 +45,11 @@ class SupabaseAuthRepository implements AuthRepository {
     required String email,
     required String password,
   }) async {
-    await _client.auth.signInWithPassword(email: email, password: password);
+    try {
+      await _client.auth.signInWithPassword(email: email, password: password);
+    } on AuthException catch (error) {
+      throw Exception(error.message);
+    }
   }
 
   @override
@@ -53,12 +57,23 @@ class SupabaseAuthRepository implements AuthRepository {
     required String email,
     required String password,
   }) async {
-    await _client.auth.signUp(email: email, password: password);
+    try {
+      await _client.auth.signUp(email: email, password: password);
+    } on AuthException catch (error) {
+      throw Exception(error.message);
+    }
   }
 
   @override
   Future<void> signInWithGoogle() async {
-    await _client.auth.signInWithOAuth(OAuthProvider.google);
+    try {
+      await _client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'vibetreck://login-callback',
+      );
+    } on AuthException catch (error) {
+      throw Exception(error.message);
+    }
   }
 
   @override

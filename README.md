@@ -23,7 +23,8 @@ flutter pub get
 flutter run \
   --dart-define=SUPABASE_URL=YOUR_URL \
   --dart-define=SUPABASE_ANON_KEY=YOUR_ANON_KEY \
-  --dart-define=MAPBOX_PUBLIC_TOKEN=YOUR_MAPBOX_TOKEN
+  --dart-define=MAPBOX_PUBLIC_TOKEN=YOUR_MAPBOX_TOKEN \
+  --dart-define=MAPBOX_DOWNLOADS_TOKEN=YOUR_MAPBOX_DOWNLOADS_TOKEN
 ```
 
 If env vars are not provided, app runs in local demo mode (mock auth/data).
@@ -34,6 +35,13 @@ If env vars are not provided, app runs in local demo mode (mock auth/data).
 3. Deploy edge functions:
    - `supabase/functions/award-aura/index.ts`
    - `supabase/functions/claim-zone/index.ts`
+4. Add OAuth redirect URL in Supabase Auth:
+   - `vibetreck://login-callback`
+
+## Android Secrets
+Set these in `android/gradle.properties`:
+- `MAPBOX_PUBLIC_TOKEN=...`
+- `MAPBOX_DOWNLOADS_TOKEN=...`
 
 ## Tests
 ```bash

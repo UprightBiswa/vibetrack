@@ -42,7 +42,18 @@ class LocalZoneRepository implements ZoneRepository {
       Zone(
         id: 'z1',
         name: 'Downtown Grid',
-        polygon: {'type': 'Polygon', 'coordinates': []},
+        polygon: {
+          'type': 'Polygon',
+          'coordinates': [
+            [
+              [77.5883, 12.9716],
+              [77.6001, 12.9716],
+              [77.6001, 12.9810],
+              [77.5883, 12.9810],
+              [77.5883, 12.9716],
+            ],
+          ],
+        },
         city: 'Demo City',
         scoreMultiplier: 1.1,
         currentGuardianUserId: 'neonrider',
@@ -50,7 +61,18 @@ class LocalZoneRepository implements ZoneRepository {
       Zone(
         id: 'z2',
         name: 'Hill Climb',
-        polygon: {'type': 'Polygon', 'coordinates': []},
+        polygon: {
+          'type': 'Polygon',
+          'coordinates': [
+            [
+              [77.5700, 12.9450],
+              [77.5810, 12.9450],
+              [77.5810, 12.9530],
+              [77.5700, 12.9530],
+              [77.5700, 12.9450],
+            ],
+          ],
+        },
         city: 'Demo City',
         scoreMultiplier: 1.5,
         currentGuardianUserId: null,

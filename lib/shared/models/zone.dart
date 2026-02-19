@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class Zone {
   const Zone({
     required this.id,
@@ -18,7 +20,7 @@ class Zone {
   factory Zone.fromJson(Map<String, dynamic> json) => Zone(
     id: json['id'] as String,
     name: (json['name'] ?? '') as String,
-    polygon: (json['polygon'] ?? <String, dynamic>{}) as Map<String, dynamic>,
+    polygon: _parsePolygon(json['polygon']),
     city: (json['city'] ?? '') as String,
     scoreMultiplier: ((json['score_multiplier'] ?? 1) as num).toDouble(),
     currentGuardianUserId: json['current_guardian_user_id'] as String?,
@@ -32,4 +34,21 @@ class Zone {
     'score_multiplier': scoreMultiplier,
     'current_guardian_user_id': currentGuardianUserId,
   };
+}
+
+Map<String, dynamic> _parsePolygon(dynamic raw) {
+  if (raw is Map<String, dynamic>) {
+    return raw;
+  }
+  if (raw is String && raw.isNotEmpty) {
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+    } catch (_) {
+      return <String, dynamic>{};
+    }
+  }
+  return <String, dynamic>{};
 }

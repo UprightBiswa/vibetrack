@@ -20,6 +20,7 @@ class SupabaseProfileRepository implements ProfileRepository {
     required String userId,
     required String email,
   }) async {
+    final fallbackUsername = _safeUsernameFromEmail(email);
     final existing = await _client
         .from('profiles')
         .select()
@@ -30,7 +31,7 @@ class SupabaseProfileRepository implements ProfileRepository {
     }
     final payload = {
       'id': userId,
-      'username': email.split('@').first,
+      'username': fallbackUsername,
       'avatar_url': '',
       'aura_points': 0,
       'home_city': 'Unknown',
@@ -67,11 +68,12 @@ class LocalProfileRepository implements ProfileRepository {
     required String userId,
     required String email,
   }) async {
+    final fallbackUsername = _safeUsernameFromEmail(email);
     final existing = _profiles[userId];
     if (existing != null) return existing;
     final created = UserProfile(
       id: userId,
-      username: email.split('@').first,
+      username: fallbackUsername,
       avatarUrl: '',
       auraPoints: 1200,
       homeCity: 'Demo City',
@@ -89,4 +91,10 @@ class LocalProfileRepository implements ProfileRepository {
       auraPoints: profile.auraPoints + delta,
     );
   }
+}
+
+String _safeUsernameFromEmail(String email) {
+  final head = email.split('@').first.trim();
+  if (head.isEmpty) return 'rider';
+  return head;
 }

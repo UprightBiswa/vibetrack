@@ -18,6 +18,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   String? _error;
 
   Future<void> _submit() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    if (!email.contains('@') || password.length < 6) {
+      setState(
+        () => _error = 'Enter a valid email and password (min 6 chars).',
+      );
+      return;
+    }
     setState(() {
       _loading = true;
       _error = null;
@@ -25,15 +33,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     try {
       final actions = ref.read(authActionsProvider);
       if (_isSignUp) {
-        await actions.signUp(
-          _emailController.text.trim(),
-          _passwordController.text.trim(),
-        );
+        await actions.signUp(email, password);
       } else {
-        await actions.signIn(
-          _emailController.text.trim(),
-          _passwordController.text.trim(),
-        );
+        await actions.signIn(email, password);
       }
       if (mounted) context.go('/home');
     } catch (err) {
