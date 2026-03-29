@@ -5,7 +5,7 @@ Urban fitness + social validation app MVP in Flutter.
 ## Stack
 - Flutter + Riverpod + GoRouter
 - Supabase (Auth, Postgres/PostGIS, Storage, Edge Functions)
-- Geolocator + Mapbox
+- Geolocator + flutter_map (OpenStreetMap)
 
 ## Implemented MVP Flow
 - Auth (email/password, local fallback mode)
@@ -21,11 +21,18 @@ Urban fitness + social validation app MVP in Flutter.
 ```bash
 flutter pub get
 flutter run \
+  --dart-define=APP_MODE=dev \
   --dart-define=SUPABASE_URL=YOUR_URL \
   --dart-define=SUPABASE_ANON_KEY=YOUR_ANON_KEY \
-  --dart-define=MAPBOX_PUBLIC_TOKEN=YOUR_MAPBOX_TOKEN \
-  --dart-define=MAPBOX_DOWNLOADS_TOKEN=YOUR_MAPBOX_DOWNLOADS_TOKEN
+  --dart-define=SUPABASE_REDIRECT_URL=vibetreck://login-callback
 ```
+
+Production run (recommended):
+```bash
+flutter run --release --dart-define-from-file=env.production.json
+```
+
+Create your `env.production.json` from `env.example.json`.
 
 If env vars are not provided, app runs in local demo mode (mock auth/data).
 
@@ -37,11 +44,6 @@ If env vars are not provided, app runs in local demo mode (mock auth/data).
    - `supabase/functions/claim-zone/index.ts`
 4. Add OAuth redirect URL in Supabase Auth:
    - `vibetreck://login-callback`
-
-## Android Secrets
-Set these in `android/gradle.properties`:
-- `MAPBOX_PUBLIC_TOKEN=...`
-- `MAPBOX_DOWNLOADS_TOKEN=...`
 
 ## Tests
 ```bash

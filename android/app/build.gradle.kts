@@ -27,7 +27,6 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        manifestPlaceholders["MAPBOX_PUBLIC_TOKEN"] = project.findProperty("MAPBOX_PUBLIC_TOKEN") as? String ?: ""
     }
 
     buildTypes {

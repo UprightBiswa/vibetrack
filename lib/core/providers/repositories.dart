@@ -17,10 +17,11 @@ final supabaseClientProvider = Provider<SupabaseClient?>((ref) {
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final client = ref.watch(supabaseClientProvider);
+  final env = ref.watch(appEnvProvider);
   if (client == null) {
     return LocalAuthRepository();
   }
-  return SupabaseAuthRepository(client);
+  return SupabaseAuthRepository(client, redirectTo: env.supabaseRedirectUrl);
 });
 
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:vibetreck/features/auth/application/auth_controller.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
@@ -16,6 +15,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   bool _isSignUp = false;
   bool _loading = false;
   String? _error;
+  String? _info;
 
   Future<void> _submit() async {
     final email = _emailController.text.trim();
@@ -29,20 +29,32 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     setState(() {
       _loading = true;
       _error = null;
+      _info = null;
     });
     try {
       final actions = ref.read(authActionsProvider);
       if (_isSignUp) {
         await actions.signUp(email, password);
+        if (!mounted) return;
+        setState(() {
+          _info =
+              'Account created. If email confirmation is enabled, verify your email to continue.';
+        });
       } else {
         await actions.signIn(email, password);
       }
-      if (mounted) context.go('/home');
     } catch (err) {
-      setState(() => _error = err.toString());
+      if (!mounted) return;
+      setState(() => _error = _friendlyError(err));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  String _friendlyError(Object err) {
+    final message = err.toString().replaceFirst('Exception: ', '').trim();
+    if (message.isEmpty) return 'Authentication failed. Please try again.';
+    return message;
   }
 
   @override
@@ -74,6 +86,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               const SizedBox(height: 12),
               Text(_error!, style: const TextStyle(color: Colors.redAccent)),
             ],
+            if (_info != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _info!,
+                style: const TextStyle(color: Colors.lightGreenAccent),
+              ),
+            ],
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
@@ -98,6 +117,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           await ref
                               .read(authActionsProvider)
                               .signInWithGoogle();
+                        } catch (err) {
+                          if (!mounted) return;
+                          setState(() => _error = _friendlyError(err));
                         } finally {
                           if (mounted) setState(() => _loading = false);
                         }

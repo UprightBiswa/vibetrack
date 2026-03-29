@@ -19,8 +19,9 @@ abstract class AuthRepository {
 }
 
 class SupabaseAuthRepository implements AuthRepository {
-  SupabaseAuthRepository(this._client);
+  SupabaseAuthRepository(this._client, {required this.redirectTo});
   final SupabaseClient _client;
+  final String redirectTo;
 
   @override
   Stream<AppUser?> authStateChanges() {
@@ -58,7 +59,11 @@ class SupabaseAuthRepository implements AuthRepository {
     required String password,
   }) async {
     try {
-      await _client.auth.signUp(email: email, password: password);
+      await _client.auth.signUp(
+        email: email,
+        password: password,
+        emailRedirectTo: redirectTo,
+      );
     } on AuthException catch (error) {
       throw Exception(error.message);
     }
@@ -69,16 +74,23 @@ class SupabaseAuthRepository implements AuthRepository {
     try {
       await _client.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: 'vibetreck://login-callback',
+        redirectTo: redirectTo,
+        authScreenLaunchMode: LaunchMode.externalApplication,
       );
     } on AuthException catch (error) {
       throw Exception(error.message);
+    } catch (_) {
+      throw Exception('Google sign-in failed. Please try again.');
     }
   }
 
   @override
   Future<void> signOut() async {
-    await _client.auth.signOut();
+    try {
+      await _client.auth.signOut();
+    } on AuthException catch (error) {
+      throw Exception(error.message);
+    }
   }
 }
 
