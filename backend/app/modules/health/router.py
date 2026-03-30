@@ -1,16 +1,15 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter
 
 from app.modules.shared.schemas import HealthResponse, MessageResponse
-
 
 router = APIRouter()
 
 
 @router.get('/health', response_model=HealthResponse)
 async def health_check() -> HealthResponse:
-    return HealthResponse(status='ok', timestamp=datetime.now(timezone.utc))
+    return HealthResponse(status='ok', timestamp=datetime.now(UTC))
 
 
 @router.get('/ready', response_model=MessageResponse)

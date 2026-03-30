@@ -1,37 +1,15 @@
-from datetime import datetime, timezone
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel, Field
-
+from app.core.database import get_db_session
 from app.core.security import CurrentUser, get_current_user
-
-
-class StartRideRequest(BaseModel):
-    activity_type: str = Field(default='ride')
-
-
-class StartRideResponse(BaseModel):
-    session_id: str
-    started_at: datetime
-
-
-class FinishRideRequest(BaseModel):
-    session_id: str
-    distance_m: float = 0
-    duration_s: int = 0
-
-
-class FinishRideResponse(BaseModel):
-    session_id: str
-    status: str
-
-
-class RideSummary(BaseModel):
-    session_id: str
-    activity_type: str
-    distance_m: float
-    duration_s: int
-
+from app.modules.rides.schemas import (
+    FinishRideRequest,
+    RideSummary,
+    StartRideRequest,
+    StartRideResponse,
+)
+from app.modules.rides.service import RideService
 
 router = APIRouter()
 
@@ -40,22 +18,29 @@ router = APIRouter()
 async def start_ride(
     request: StartRideRequest,
     user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
 ) -> StartRideResponse:
-    started_at = datetime.now(timezone.utc)
-    session_id = f'{user.user_id}:{int(started_at.timestamp())}'
-    return StartRideResponse(session_id=session_id, started_at=started_at)
+    ride = await RideService(session).start_ride(user, request)
+    return StartRideResponse(session_id=ride.id, started_at=ride.started_at, status=ride.status)
 
 
-@router.post('/sessions/finish', response_model=FinishRideResponse)
+@router.post('/sessions/finish', response_model=RideSummary)
 async def finish_ride(
     request: FinishRideRequest,
     user: CurrentUser = Depends(get_current_user),
-) -> FinishRideResponse:
-    _ = user
-    return FinishRideResponse(session_id=request.session_id, status='queued')
+    session: AsyncSession = Depends(get_db_session),
+) -> RideSummary:
+    try:
+        ride = await RideService(session).finish_ride(user, request)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return RideSummary.model_validate(ride)
 
 
 @router.get('/sessions/mine', response_model=list[RideSummary])
-async def list_my_rides(user: CurrentUser = Depends(get_current_user)) -> list[RideSummary]:
-    _ = user
-    return []
+async def list_my_rides(
+    user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> list[RideSummary]:
+    rides = await RideService(session).list_rides(user)
+    return [RideSummary.model_validate(ride) for ride in rides]

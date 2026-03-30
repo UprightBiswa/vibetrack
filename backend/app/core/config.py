@@ -5,18 +5,32 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8', case_sensitive=False)
+    model_config = SettingsConfigDict(
+        env_file='.env',
+        env_file_encoding='utf-8',
+        case_sensitive=False,
+    )
 
     app_env: str = Field(default='development', alias='APP_ENV')
     api_v1_prefix: str = Field(default='/api/v1', alias='API_V1_PREFIX')
     project_name: str = Field(default='VibeTrack API', alias='PROJECT_NAME')
+    auto_create_tables: bool = Field(default=True, alias='APP_AUTO_CREATE_TABLES')
     database_url: str = Field(..., alias='DATABASE_URL')
     redis_url: str = Field(default='redis://localhost:6379/0', alias='REDIS_URL')
     supabase_url: str = Field(..., alias='SUPABASE_URL')
     supabase_anon_key: str | None = Field(default=None, alias='SUPABASE_ANON_KEY')
-    supabase_jwt_issuer_override: str | None = Field(default=None, alias='SUPABASE_JWT_ISSUER')
-    supabase_jwt_audience: str = Field(default='authenticated', alias='SUPABASE_JWT_AUDIENCE')
-    supabase_jwks_url_override: str | None = Field(default=None, alias='SUPABASE_JWKS_URL')
+    supabase_jwt_issuer_override: str | None = Field(
+        default=None,
+        alias='SUPABASE_JWT_ISSUER',
+    )
+    supabase_jwt_audience: str = Field(
+        default='authenticated',
+        alias='SUPABASE_JWT_AUDIENCE',
+    )
+    supabase_jwks_url_override: str | None = Field(
+        default=None,
+        alias='SUPABASE_JWKS_URL',
+    )
     superadmin_emails: str = Field(default='', alias='SUPERADMIN_EMAILS')
     fcm_project_id: str | None = Field(default=None, alias='FCM_PROJECT_ID')
     fcm_client_email: str | None = Field(default=None, alias='FCM_CLIENT_EMAIL')
@@ -38,7 +52,11 @@ class Settings(BaseSettings):
 
     @property
     def superadmin_email_set(self) -> set[str]:
-        return {email.strip().lower() for email in self.superadmin_emails.split(',') if email.strip()}
+        return {
+            email.strip().lower()
+            for email in self.superadmin_emails.split(',')
+            if email.strip()
+        }
 
 
 @lru_cache

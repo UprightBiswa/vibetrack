@@ -10,7 +10,6 @@ from app.modules.profiles.router import router as profiles_router
 from app.modules.rides.router import router as rides_router
 from app.modules.zones.router import router as zones_router
 
-
 api_router = APIRouter()
 api_router.include_router(health_router, tags=['health'])
 api_router.include_router(auth_router, prefix='/auth', tags=['auth'])

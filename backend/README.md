@@ -47,6 +47,7 @@ Notes:
 - The backend does **not** need the frontend redirect URL
 - The backend can derive JWT issuer and JWKS URL from `SUPABASE_URL`
 - The backend usually does **not** need the Supabase anon key for token verification
+- In development, the app auto-creates the current SQLAlchemy tables on startup when `APP_AUTO_CREATE_TABLES=true`
 
 ## Local setup
 
@@ -74,18 +75,21 @@ copy .env.example .env
 uvicorn app.main:app --reload --app-dir .
 ```
 
-## Initial routes
+## Current DB-backed routes
 
 - `GET /api/v1/health`
 - `GET /api/v1/ready`
 - `GET /api/v1/auth/me`
 - `GET /api/v1/config/bootstrap`
 - `GET /api/v1/profiles/me`
+- `PUT /api/v1/profiles/me`
 - `POST /api/v1/rides/sessions/start`
 - `POST /api/v1/rides/sessions/finish`
 - `GET /api/v1/rides/sessions/mine`
 - `GET /api/v1/feed/posts`
 - `POST /api/v1/feed/posts`
+
+Routes below still exist as scaffold only:
 - `GET /api/v1/zones`
 - `POST /api/v1/zones/{zone_id}/claim`
 - `POST /api/v1/notifications/device-token`
@@ -93,9 +97,10 @@ uvicorn app.main:app --reload --app-dir .
 
 ## Next backend milestones
 
-1. Database models and migrations
-2. Real profile/session/post persistence
-3. Storage signing and upload orchestration
+1. Alembic migrations and production-safe schema management
+2. Ride points / route chunking for long sessions
+3. Feed likes/comments and moderation
 4. FCM device token management
 5. Admin auth and audit logs
 6. WebSocket live ride service
+7. Flutter app migration from direct Supabase repositories to backend API adapters

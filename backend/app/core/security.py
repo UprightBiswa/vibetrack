@@ -7,7 +7,6 @@ from jwt.exceptions import InvalidTokenError
 
 from app.core.config import settings
 
-
 security = HTTPBearer(auto_error=False)
 _jwk_client = PyJWKClient(settings.supabase_jwks_url)
 
@@ -34,12 +33,18 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
 ) -> CurrentUser:
     if credentials is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Missing bearer token')
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Missing bearer token',
+        )
 
     try:
         payload = decode_supabase_token(credentials.credentials)
     except InvalidTokenError as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid token') from exc
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Invalid token',
+        ) from exc
 
     return CurrentUser(
         user_id=str(payload.get('sub')),
@@ -50,5 +55,8 @@ async def get_current_user(
 
 async def require_superadmin(user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
     if (user.email or '').lower() not in settings.superadmin_email_set:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Admin access required')
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Admin access required',
+        )
     return user

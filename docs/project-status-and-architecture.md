@@ -506,3 +506,41 @@ Important note:
 7. Add audit logs, admin metrics, and report moderation
 8. Add Redis-backed caching and live ride session state
 9. Add WebSocket live ride channels
+
+## 15. Backend Persistence Slice Implemented On 2026-03-30
+
+The backend is no longer only a scaffold.
+
+Implemented now:
+- shared SQLAlchemy base and timestamp mixin
+- automatic dev-time table creation via `APP_AUTO_CREATE_TABLES=true`
+- Neon connection normalization for async SQLAlchemy + `asyncpg`
+- DB-backed `profiles` module
+- DB-backed `rides` module
+- DB-backed `feed` module
+
+Current persisted tables:
+- `profiles`
+- `ride_sessions`
+- `feed_posts`
+
+Current backend runtime verification completed:
+- backend imports successfully
+- Neon query succeeds
+- FastAPI server responds on `/api/v1/health`
+- core tables exist in Neon
+- backend lint passes with Ruff
+
+What is still scaffold-only:
+- zones
+- notifications
+- admin overview
+- analytics
+
+Next recommended implementation order:
+1. likes/comments and richer feed actions
+2. ride point chunk storage and activity detail retrieval
+3. Dio-based Flutter API client and backend repository adapters
+4. FCM device token registration + push delivery service
+5. admin APIs and moderation/audit layer
+6. WebSocket live ride service
