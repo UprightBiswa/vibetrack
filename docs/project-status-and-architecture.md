@@ -451,3 +451,58 @@ That gives you:
 - easier admin panel integration
 - easier notifications and analytics
 - easier future replacement of Supabase parts if needed
+
+## 13. Backend Scaffold Implemented On 2026-03-30
+
+A new backend foundation now exists under `backend/`.
+
+Implemented now:
+- FastAPI modular-monolith project scaffold
+- environment-driven config via `pydantic-settings`
+- structured logging bootstrap via `structlog`
+- async SQLAlchemy engine/session factory
+- Supabase JWT verification middleware using JWKS
+- superadmin guard based on configured email allow-list
+- API router tree for:
+  - health
+  - auth
+  - config
+  - profiles
+  - rides
+  - feed
+  - zones
+  - notifications
+  - admin
+- GitHub Actions backend CI scaffold
+
+Current backend files:
+- `backend/pyproject.toml`
+- `backend/.env.example`
+- `backend/README.md`
+- `backend/app/main.py`
+- `backend/app/core/config.py`
+- `backend/app/core/logging.py`
+- `backend/app/core/database.py`
+- `backend/app/core/security.py`
+- `backend/app/api/v1/router.py`
+- `backend/app/modules/**/router.py`
+- `.github/workflows/backend-ci.yml`
+
+Important note:
+- Python is not currently available in the local shell environment, so the backend scaffold was created but not yet executed locally in this session.
+- Next technical prerequisite is installing Python 3.11+ or fixing PATH access to Python.
+
+## 14. Next Backend Steps
+
+1. Install Python locally and run the backend scaffold
+2. Add SQLAlchemy models and Alembic migrations
+3. Connect Neon Postgres and create first persisted modules:
+   - profiles
+   - ride sessions
+   - feed posts
+4. Add service layer and repository layer inside backend
+5. Move Flutter data access from direct Supabase tables to backend APIs
+6. Add device token persistence and FCM delivery service
+7. Add audit logs, admin metrics, and report moderation
+8. Add Redis-backed caching and live ride session state
+9. Add WebSocket live ride channels

@@ -1,0 +1,35 @@
+[project]
+name = "vibetrack-backend"
+version = "0.1.0"
+description = "VibeTrack API backend"
+requires-python = ">=3.11"
+dependencies = [
+  "alembic>=1.14.0",
+  "asyncpg>=0.30.0",
+  "fastapi>=0.116.0",
+  "greenlet>=3.1.1",
+  "httpx>=0.28.1",
+  "pydantic-settings>=2.8.1",
+  "PyJWT[crypto]>=2.10.1",
+  "redis>=5.2.1",
+  "sqlalchemy[asyncio]>=2.0.39",
+  "structlog>=25.1.0",
+  "uvicorn[standard]>=0.34.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.5",
+  "pytest-asyncio>=0.25.3",
+  "ruff>=0.11.2",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
