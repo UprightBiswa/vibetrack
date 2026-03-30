@@ -25,6 +25,29 @@ This backend is designed to:
 - FCM later for notifications
 - WebSockets later for live ride sharing
 
+## What backend needs from you
+
+### Required now
+- `SUPABASE_URL`
+- `DATABASE_URL`
+
+### Optional now
+- `SUPABASE_ANON_KEY`
+- `SUPERADMIN_EMAILS`
+
+### Needed later for push notifications
+- `FCM_PROJECT_ID`
+- `FCM_CLIENT_EMAIL`
+- `FCM_PRIVATE_KEY`
+
+### Needed later for Redis
+- `REDIS_URL`
+
+Notes:
+- The backend does **not** need the frontend redirect URL
+- The backend can derive JWT issuer and JWKS URL from `SUPABASE_URL`
+- The backend usually does **not** need the Supabase anon key for token verification
+
 ## Local setup
 
 1. Install Python 3.11+
@@ -41,7 +64,11 @@ pip install -e .[dev]
 copy .env.example .env
 ```
 
-5. Run the server
+5. Fill in at least:
+- `SUPABASE_URL`
+- `DATABASE_URL`
+
+6. Run the server
 
 ```bash
 uvicorn app.main:app --reload --app-dir .

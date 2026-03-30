@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,13 +13,28 @@ class Settings(BaseSettings):
     database_url: str = Field(..., alias='DATABASE_URL')
     redis_url: str = Field(default='redis://localhost:6379/0', alias='REDIS_URL')
     supabase_url: str = Field(..., alias='SUPABASE_URL')
-    supabase_jwt_issuer: str = Field(..., alias='SUPABASE_JWT_ISSUER')
+    supabase_anon_key: str | None = Field(default=None, alias='SUPABASE_ANON_KEY')
+    supabase_jwt_issuer_override: str | None = Field(default=None, alias='SUPABASE_JWT_ISSUER')
     supabase_jwt_audience: str = Field(default='authenticated', alias='SUPABASE_JWT_AUDIENCE')
-    supabase_jwks_url: str = Field(..., alias='SUPABASE_JWKS_URL')
+    supabase_jwks_url_override: str | None = Field(default=None, alias='SUPABASE_JWKS_URL')
     superadmin_emails: str = Field(default='', alias='SUPERADMIN_EMAILS')
     fcm_project_id: str | None = Field(default=None, alias='FCM_PROJECT_ID')
     fcm_client_email: str | None = Field(default=None, alias='FCM_CLIENT_EMAIL')
     fcm_private_key: str | None = Field(default=None, alias='FCM_PRIVATE_KEY')
+
+    @computed_field
+    @property
+    def supabase_jwt_issuer(self) -> str:
+        if self.supabase_jwt_issuer_override:
+            return self.supabase_jwt_issuer_override
+        return f'{self.supabase_url.rstrip("/")}/auth/v1'
+
+    @computed_field
+    @property
+    def supabase_jwks_url(self) -> str:
+        if self.supabase_jwks_url_override:
+            return self.supabase_jwks_url_override
+        return f'{self.supabase_jwt_issuer}/.well-known/jwks.json'
 
     @property
     def superadmin_email_set(self) -> set[str]:

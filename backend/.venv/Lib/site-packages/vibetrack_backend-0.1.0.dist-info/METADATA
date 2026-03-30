@@ -1,0 +1,20 @@
+Metadata-Version: 2.4
+Name: vibetrack-backend
+Version: 0.1.0
+Summary: VibeTrack API backend
+Requires-Python: >=3.11
+Requires-Dist: alembic>=1.14.0
+Requires-Dist: asyncpg>=0.30.0
+Requires-Dist: fastapi>=0.116.0
+Requires-Dist: greenlet>=3.1.1
+Requires-Dist: httpx>=0.28.1
+Requires-Dist: pydantic-settings>=2.8.1
+Requires-Dist: PyJWT[crypto]>=2.10.1
+Requires-Dist: redis>=5.2.1
+Requires-Dist: sqlalchemy[asyncio]>=2.0.39
+Requires-Dist: structlog>=25.1.0
+Requires-Dist: uvicorn[standard]>=0.34.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.3.5; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.25.3; extra == "dev"
+Requires-Dist: ruff>=0.11.2; extra == "dev"
