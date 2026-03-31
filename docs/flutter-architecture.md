@@ -44,9 +44,9 @@ Instead, the app follows a practical clean architecture shape:
 - profile
 - ride session create/get
 - feed list/create/like
+- zones list/claim
 
 ## Still on fallback path for now
-- zones
 - notifications
 - admin features
 - live sockets
@@ -57,4 +57,4 @@ Instead, the app follows a practical clean architecture shape:
 2. Add background/offline ride sync queue
 3. Add WebSocket client for live ride sharing
 4. Add FCM token registration and notification handling
-5. Add zones API adapter when backend module is ready
+5. Add notifications/admin API adapters when backend modules are ready

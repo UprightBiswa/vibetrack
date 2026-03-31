@@ -544,3 +544,26 @@ Next recommended implementation order:
 4. FCM device token registration + push delivery service
 5. admin APIs and moderation/audit layer
 6. WebSocket live ride service
+
+## 16. Zones Backend Slice Implemented On 2026-04-01
+
+The zones feature is now connected end-to-end through the custom backend.
+
+Implemented now:
+- persisted `zones` and `zone_claim_events` tables
+- seeded default zone data for development/local testing
+- public zones list API
+- authenticated zone claim API using finished ride sessions
+- Flutter zones repository now prefers backend API when `BACKEND_API_URL` is configured
+
+Current zones validation completed:
+- `zones` and `zone_claim_events` tables created in Neon
+- `GET /api/v1/zones` returns seeded zones successfully
+- Flutter analyze passes
+- Flutter tests pass
+- Backend Ruff lint passes
+
+Current limitations:
+- claim validation does not yet check geospatial route intersection
+- no zone claim history UI yet
+- no realtime zone ownership updates yet

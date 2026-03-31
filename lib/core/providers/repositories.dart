@@ -65,6 +65,11 @@ final feedRepositoryProvider = Provider<FeedRepository>((ref) {
 });
 
 final zoneRepositoryProvider = Provider<ZoneRepository>((ref) {
+  final apiClient = ref.watch(apiClientProvider);
+  if (apiClient != null) {
+    return ApiZoneRepository(apiClient);
+  }
+
   final client = ref.watch(supabaseClientProvider);
   if (client == null) {
     return LocalZoneRepository();

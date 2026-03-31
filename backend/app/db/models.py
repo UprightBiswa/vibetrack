@@ -2,5 +2,6 @@
 from app.modules.feed.models import FeedPost
 from app.modules.profiles.models import Profile
 from app.modules.rides.models import RideSession
+from app.modules.zones.models import Zone, ZoneClaimEvent
 
-__all__ = ['FeedPost', 'Profile', 'RideSession']
+__all__ = ['FeedPost', 'Profile', 'RideSession', 'Zone', 'ZoneClaimEvent']

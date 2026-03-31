@@ -92,10 +92,10 @@ uvicorn app.main:app --host 0.0.0.0 --port 8001 --app-dir .
 - `GET /api/v1/feed/posts`
 - `POST /api/v1/feed/posts`
 - `POST /api/v1/feed/posts/{post_id}/like`
-
-Routes below still exist as scaffold only:
 - `GET /api/v1/zones`
 - `POST /api/v1/zones/{zone_id}/claim`
+
+Routes below still exist as scaffold only:
 - `POST /api/v1/notifications/device-token`
 - `GET /api/v1/admin/overview`
 

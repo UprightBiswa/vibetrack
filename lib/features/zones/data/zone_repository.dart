@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibetreck/shared/models/zone.dart';
 
@@ -7,6 +8,37 @@ abstract class ZoneRepository {
     required String sessionId,
     required String zoneId,
   });
+}
+
+class ApiZoneRepository implements ZoneRepository {
+  ApiZoneRepository(this._dio);
+
+  final Dio _dio;
+
+  @override
+  Future<List<Zone>> fetchZones() async {
+    final response = await _dio.get<List<dynamic>>('/api/v1/zones');
+    return (response.data ?? <dynamic>[])
+        .map((item) => Zone.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  Future<Map<String, dynamic>> claimZone({
+    required String sessionId,
+    required String zoneId,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/v1/zones/$zoneId/claim',
+      data: {'sessionId': sessionId},
+    );
+    final data = response.data ?? <String, dynamic>{};
+    return {
+      'claimStatus': data['claim_status'] ?? data['claimStatus'] ?? 'unknown',
+      'guardianUserId': data['guardian_user_id'] ?? data['guardianUserId'],
+      'auraAwarded': data['aura_awarded'] ?? data['auraAwarded'] ?? 0,
+    };
+  }
 }
 
 class SupabaseZoneRepository implements ZoneRepository {
