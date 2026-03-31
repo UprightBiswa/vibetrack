@@ -6,9 +6,12 @@ import 'package:vibetreck/core/providers/repositories.dart';
 import 'package:vibetreck/features/auth/application/auth_controller.dart';
 import 'package:vibetreck/shared/models/feed_post.dart';
 
-final feedProvider = FutureProvider<List<FeedPost>>((ref) async {
-  return ref.read(feedRepositoryProvider).fetchPosts();
-});
+final feedProvider = FutureProvider<List<FeedPost>>(
+  retry: (count, error) => null,
+  (ref) async {
+    return ref.read(feedRepositoryProvider).fetchPosts();
+  },
+);
 
 final feedActionsProvider = Provider<FeedActions>((ref) {
   return FeedActions(ref);

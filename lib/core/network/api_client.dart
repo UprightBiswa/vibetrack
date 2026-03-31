@@ -14,7 +14,7 @@ final apiClientProvider = Provider<Dio?>((ref) {
 
   final dio = Dio(
     BaseOptions(
-      baseUrl: env.backendApiUrl,
+      baseUrl: env.effectiveBackendApiUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 20),
       sendTimeout: const Duration(seconds: 20),
@@ -40,6 +40,9 @@ final apiClientProvider = Provider<Dio?>((ref) {
         final token = await ref.read(authTokenProvider).getAccessToken();
         if (token != null && token.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $token';
+          AppLogger.info('Attached bearer token for ${options.path}');
+        } else {
+          AppLogger.warning('No bearer token available for ${options.path}');
         }
 
         AppLogger.info('API request ${options.method} ${options.uri}');
@@ -58,8 +61,7 @@ final apiClientProvider = Provider<Dio?>((ref) {
             : response?.statusMessage;
 
         final message = switch (error.type) {
-          DioExceptionType.connectionError =>
-            'Unable to reach the backend API. Make sure the FastAPI server is running and adb reverse is active for port 8001.',
+          DioExceptionType.connectionError => _buildConnectionErrorMessage(env),
           DioExceptionType.connectionTimeout =>
             'Connection timed out while contacting the backend API.',
           DioExceptionType.receiveTimeout =>
@@ -96,3 +98,12 @@ final apiClientProvider = Provider<Dio?>((ref) {
 
   return dio;
 });
+
+String _buildConnectionErrorMessage(AppEnv env) {
+  final hint = env.backendSetupHint;
+  if (hint != null) {
+    return 'Unable to reach the backend API at ${env.effectiveBackendApiUrl}. $hint';
+  }
+  return 'Unable to reach the backend API at ${env.effectiveBackendApiUrl}. Make sure the FastAPI server is running and reachable from the device.';
+}
+

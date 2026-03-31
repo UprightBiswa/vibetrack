@@ -1,4 +1,4 @@
-# VibeTrack
+﻿# VibeTrack
 
 Urban fitness + social validation app MVP in Flutter.
 
@@ -40,14 +40,32 @@ Production run (recommended):
 flutter run --release --dart-define-from-file=env.production.json
 ```
 
-Create your `env.production.json` from `env.example.json`.
+Create your `env.production.json` from the example in this README.
 
 If env vars are not provided, app runs in local demo mode (mock auth/data).
 
 ## Backend API URL Notes
-- Android emulator: `http://10.0.2.2:8001`
-- Physical Android device: `http://YOUR_COMPUTER_LAN_IP:8001`
-- iOS simulator: `http://127.0.0.1:8001`
+- `BACKEND_API_URL` is the default backend URL.
+- `BACKEND_API_URL_ANDROID` overrides it only on Android builds.
+- Android emulator: use `http://10.0.2.2:8001`
+- Physical Android device: use `http://YOUR_COMPUTER_LAN_IP:8001`
+- iOS simulator: use `http://127.0.0.1:8001`
+- If you keep `http://127.0.0.1:8001` on a physical Android device, you must run:
+```bash
+adb reverse tcp:8001 tcp:8001
+```
+
+Example for a physical Android device:
+```json
+{
+  "APP_MODE": "production",
+  "SUPABASE_URL": "https://your-project.supabase.co",
+  "SUPABASE_ANON_KEY": "YOUR_ANON_KEY",
+  "SUPABASE_REDIRECT_URL": "vibetreck://login-callback",
+  "BACKEND_API_URL": "http://127.0.0.1:8001",
+  "BACKEND_API_URL_ANDROID": "http://192.168.1.8:8001"
+}
+```
 
 ## Supabase Setup
 1. Run SQL in `supabase/schema.sql`.

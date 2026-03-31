@@ -11,6 +11,7 @@ class AppEnv {
     required this.supabaseAnonKey,
     required this.supabaseRedirectUrl,
     required this.backendApiUrl,
+    required this.androidBackendApiUrl,
   });
 
   final AppMode appMode;
@@ -18,12 +19,39 @@ class AppEnv {
   final String supabaseAnonKey;
   final String supabaseRedirectUrl;
   final String backendApiUrl;
+  final String androidBackendApiUrl;
 
   bool get isProduction => appMode == AppMode.production;
   bool get hasSupabase => supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
   bool get hasSupabaseRedirectUrl => supabaseRedirectUrl.isNotEmpty;
-  bool get hasBackendApi => backendApiUrl.isNotEmpty;
+  bool get hasBackendApi => effectiveBackendApiUrl.isNotEmpty;
   bool get hasRequiredProductionKeys => hasSupabase && hasSupabaseRedirectUrl;
+
+  String get effectiveBackendApiUrl {
+    if (androidBackendApiUrl.isNotEmpty) {
+      return androidBackendApiUrl;
+    }
+    return backendApiUrl;
+  }
+
+  bool get isLoopbackBackendHost {
+    final uri = Uri.tryParse(effectiveBackendApiUrl);
+    final host = uri?.host.toLowerCase() ?? '';
+    return host == '127.0.0.1' || host == 'localhost';
+  }
+
+  String? get backendSetupHint {
+    if (!hasBackendApi) {
+      return null;
+    }
+    if (androidBackendApiUrl.isNotEmpty) {
+      return null;
+    }
+    if (!isLoopbackBackendHost) {
+      return null;
+    }
+    return 'Android physical devices cannot use 127.0.0.1 directly. Either run `adb reverse tcp:8001 tcp:8001` before `flutter run`, or set `BACKEND_API_URL_ANDROID` to your computer LAN URL such as `http://192.168.x.x:8001`.';
+  }
 
   List<String> get missingProductionKeys {
     final missing = <String>[];
@@ -54,6 +82,10 @@ class AppEnv {
       'BACKEND_API_URL',
       defaultValue: '',
     );
+    const androidBackendApiUrl = String.fromEnvironment(
+      'BACKEND_API_URL_ANDROID',
+      defaultValue: '',
+    );
 
     return AppEnv(
       appMode: _parseMode(modeRaw),
@@ -61,6 +93,7 @@ class AppEnv {
       supabaseAnonKey: supabaseAnonKey,
       supabaseRedirectUrl: supabaseRedirectUrl,
       backendApiUrl: backendApiUrl,
+      androidBackendApiUrl: androidBackendApiUrl,
     );
   }
 }

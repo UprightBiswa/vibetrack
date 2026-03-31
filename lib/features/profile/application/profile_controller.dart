@@ -3,20 +3,23 @@ import 'package:vibetreck/core/providers/repositories.dart';
 import 'package:vibetreck/features/auth/application/auth_controller.dart';
 import 'package:vibetreck/shared/models/user_profile.dart';
 
-final currentProfileProvider = FutureProvider<UserProfile?>((ref) async {
-  final user = await ref.watch(authUserProvider.future);
-  if (user == null) return null;
-  return ref
-      .read(profileRepositoryProvider)
-      .getOrCreateProfile(userId: user.id, email: user.email);
-});
+final currentProfileProvider = FutureProvider<UserProfile?>(
+  retry: (count, error) => null,
+  (ref) async {
+    final user = await ref.watch(authUserProvider.future);
+    if (user == null) return null;
+    return ref
+        .read(profileRepositoryProvider)
+        .getOrCreateProfile(userId: user.id, email: user.email);
+  },
+);
 
-final profileByIdProvider = FutureProvider.family<UserProfile?, String>((
-  ref,
-  profileId,
-) {
-  return ref.read(profileRepositoryProvider).getProfileById(profileId);
-});
+final profileByIdProvider = FutureProvider.family<UserProfile?, String>(
+  retry: (count, error) => null,
+  (ref, profileId) {
+    return ref.read(profileRepositoryProvider).getProfileById(profileId);
+  },
+);
 
 final profileActionsProvider = Provider<ProfileActions>((ref) {
   return ProfileActions(ref);

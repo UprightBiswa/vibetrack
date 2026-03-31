@@ -2,9 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vibetreck/core/providers/repositories.dart';
 import 'package:vibetreck/shared/models/zone.dart';
 
-final zonesProvider = FutureProvider<List<Zone>>((ref) {
-  return ref.read(zoneRepositoryProvider).fetchZones();
-});
+final zonesProvider = FutureProvider<List<Zone>>(
+  retry: (count, error) => null,
+  (ref) {
+    return ref.read(zoneRepositoryProvider).fetchZones();
+  },
+);
 
 final zoneActionsProvider = Provider<ZoneActions>((ref) => ZoneActions(ref));
 
