@@ -46,9 +46,11 @@ class SupabaseMediaUploadService implements MediaUploadService {
       final message = error.message.toLowerCase();
       if (message.contains('403') ||
           message.contains('not authorized') ||
-          message.contains('permission')) {
+          message.contains('permission') ||
+          message.contains('row-level security') ||
+          message.contains('violates row-level security policy')) {
         throw Exception(
-          'Post upload is blocked by Supabase Storage policy. Create a public `posts` bucket and allow authenticated uploads.',
+          'Post upload is blocked by Supabase Storage policy for the `posts` bucket. Create the bucket and add authenticated upload + public read policies before publishing media.',
         );
       }
       throw Exception(error.message);
