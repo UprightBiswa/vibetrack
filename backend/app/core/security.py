@@ -43,17 +43,7 @@ async def fetch_supabase_user(token: str) -> dict:
     return response.json()
 
 
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(security),
-) -> CurrentUser:
-    if credentials is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='Missing bearer token',
-        )
-
-    token = credentials.credentials
-
+async def _resolve_current_user(token: str) -> CurrentUser:
     try:
         payload = decode_supabase_token(token)
         return CurrentUser(
@@ -77,6 +67,28 @@ async def get_current_user(
         email=user_data.get('email'),
         role=user_data.get('role'),
     )
+
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+) -> CurrentUser:
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Missing bearer token',
+        )
+    return await _resolve_current_user(credentials.credentials)
+
+
+async def get_optional_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+) -> CurrentUser | None:
+    if credentials is None:
+        return None
+    try:
+        return await _resolve_current_user(credentials.credentials)
+    except HTTPException:
+        return None
 
 
 async def require_superadmin(user: CurrentUser = Depends(get_current_user)) -> CurrentUser:

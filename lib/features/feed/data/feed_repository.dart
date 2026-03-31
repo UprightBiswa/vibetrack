@@ -9,7 +9,7 @@ abstract class FeedRepository {
   Future<List<FeedComment>> fetchComments(String postId);
   Future<void> createPost(FeedPost post);
   Future<FeedComment> addComment(String postId, String body);
-  Future<void> likePost(String postId);
+  Future<FeedPost> likePost(String postId);
 }
 
 class ApiFeedRepository implements FeedRepository {
@@ -62,8 +62,9 @@ class ApiFeedRepository implements FeedRepository {
   }
 
   @override
-  Future<void> likePost(String postId) async {
-    await _dio.post<Map<String, dynamic>>('/api/v1/feed/posts/$postId/like');
+  Future<FeedPost> likePost(String postId) async {
+    final response = await _dio.post<Map<String, dynamic>>('/api/v1/feed/posts/$postId/like');
+    return FeedPost.fromJson(response.data ?? <String, dynamic>{});
   }
 }
 
@@ -127,17 +128,20 @@ class SupabaseFeedRepository implements FeedRepository {
   }
 
   @override
-  Future<void> likePost(String postId) async {
+  Future<FeedPost> likePost(String postId) async {
     final row = await _client
         .from('posts')
-        .select('like_count')
+        .select('like_count, *, profiles(username)')
         .eq('id', postId)
         .single();
     final likes = (row['like_count'] ?? 0) as int;
-    await _client
+    final updated = await _client
         .from('posts')
         .update({'like_count': likes + 1})
-        .eq('id', postId);
+        .eq('id', postId)
+        .select('*, profiles(username)')
+        .single();
+    return FeedPost.fromJson(updated);
   }
 }
 
@@ -190,11 +194,20 @@ class LocalFeedRepository implements FeedRepository {
   }
 
   @override
-  Future<void> likePost(String postId) async {
+  Future<FeedPost> likePost(String postId) async {
     final index = _items.indexWhere((item) => item.id == postId);
-    if (index < 0) return;
-    _items[index] = _items[index].copyWith(
-      likeCount: _items[index].likeCount + 1,
+    if (index < 0) {
+      throw StateError('Post not found');
+    }
+    final target = _items[index];
+    final nextLiked = !target.likedByMe;
+    final nextCount = nextLiked
+        ? target.likeCount + 1
+        : (target.likeCount > 0 ? target.likeCount - 1 : 0);
+    _items[index] = target.copyWith(
+      likeCount: nextCount,
+      likedByMe: nextLiked,
     );
+    return _items[index];
   }
 }

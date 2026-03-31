@@ -1,4 +1,4 @@
-class UserProfile {
+﻿class UserProfile {
   const UserProfile({
     required this.id,
     required this.username,
@@ -7,6 +7,7 @@ class UserProfile {
     required this.homeCity,
     required this.createdAt,
     this.email,
+    this.globalRank,
   });
 
   final String id;
@@ -16,6 +17,7 @@ class UserProfile {
   final String homeCity;
   final DateTime createdAt;
   final String? email;
+  final int? globalRank;
 
   UserProfile copyWith({
     String? username,
@@ -23,6 +25,7 @@ class UserProfile {
     int? auraPoints,
     String? homeCity,
     String? email,
+    int? globalRank,
   }) {
     return UserProfile(
       id: id,
@@ -32,6 +35,7 @@ class UserProfile {
       homeCity: homeCity ?? this.homeCity,
       createdAt: createdAt,
       email: email ?? this.email,
+      globalRank: globalRank ?? this.globalRank,
     );
   }
 
@@ -44,6 +48,7 @@ class UserProfile {
     createdAt: DateTime.tryParse((json['created_at'] ?? '').toString()) ??
         DateTime.now(),
     email: json['email'] as String?,
+    globalRank: json['global_rank'] as int?,
   );
 
   Map<String, dynamic> toJson() => {
@@ -54,5 +59,6 @@ class UserProfile {
     'home_city': homeCity,
     'created_at': createdAt.toIso8601String(),
     'email': email,
+    'global_rank': globalRank,
   };
 }

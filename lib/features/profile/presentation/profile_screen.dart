@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vibetreck/core/routing/app_routes.dart';
@@ -61,10 +61,12 @@ class ProfileScreen extends ConsumerWidget {
                   trailing: Text(profile?.homeCity ?? '-'),
                 ),
               ),
-              const Card(
+              Card(
                 child: ListTile(
-                  title: Text('Weekly Leaderboard'),
-                  trailing: Text('#12'),
+                  title: const Text('Global Aura Rank'),
+                  trailing: Text(
+                    profile?.globalRank != null ? '#${profile!.globalRank}' : '-',
+                  ),
                 ),
               ),
               const SizedBox(height: 12),

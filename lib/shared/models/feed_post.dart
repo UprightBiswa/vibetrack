@@ -1,4 +1,4 @@
-class FeedPost {
+﻿class FeedPost {
   const FeedPost({
     required this.id,
     required this.userId,
@@ -10,6 +10,7 @@ class FeedPost {
     required this.likeCount,
     required this.commentCount,
     required this.username,
+    required this.likedByMe,
   });
 
   final String id;
@@ -22,8 +23,9 @@ class FeedPost {
   final int likeCount;
   final int commentCount;
   final String username;
+  final bool likedByMe;
 
-  FeedPost copyWith({int? likeCount, int? commentCount}) {
+  FeedPost copyWith({int? likeCount, int? commentCount, bool? likedByMe}) {
     return FeedPost(
       id: id,
       userId: userId,
@@ -35,6 +37,7 @@ class FeedPost {
       likeCount: likeCount ?? this.likeCount,
       commentCount: commentCount ?? this.commentCount,
       username: username,
+      likedByMe: likedByMe ?? this.likedByMe,
     );
   }
 
@@ -51,6 +54,7 @@ class FeedPost {
     commentCount: (json['comment_count'] ?? 0) as int,
     username:
         (json['username'] ?? json['profiles']?['username'] ?? 'Rider') as String,
+    likedByMe: (json['liked_by_me'] ?? false) as bool,
   );
 
   Map<String, dynamic> toJson() => {
@@ -63,5 +67,6 @@ class FeedPost {
     'created_at': createdAt.toIso8601String(),
     'like_count': likeCount,
     'comment_count': commentCount,
+    'liked_by_me': likedByMe,
   };
 }

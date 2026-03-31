@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+﻿from pydantic import BaseModel, ConfigDict, Field
 
 
 class ProfileResponse(BaseModel):
@@ -10,6 +10,19 @@ class ProfileResponse(BaseModel):
     avatar_url: str
     home_city: str
     aura_points: int
+
+
+class ProfileRankResponse(BaseModel):
+    profile_id: str
+    aura_points: int
+    global_rank: int
+
+
+class LeaderboardEntryResponse(BaseModel):
+    profile_id: str
+    username: str
+    aura_points: int
+    global_rank: int
 
 
 class UpdateProfileRequest(BaseModel):

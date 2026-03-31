@@ -58,6 +58,7 @@ class FeedActions {
       likeCount: 0,
       commentCount: 0,
       username: user.email.split('@').first,
+      likedByMe: false,
     );
     await _ref.read(feedRepositoryProvider).createPost(post);
     _ref.invalidate(feedProvider);

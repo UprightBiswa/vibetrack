@@ -66,6 +66,7 @@ class _FeedPostDetailScreenState extends ConsumerState<FeedPostDetailScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => AppErrorState(message: error.toString()),
         data: (post) {
+          final stats = post.statsJson;
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -73,13 +74,54 @@ class _FeedPostDetailScreenState extends ConsumerState<FeedPostDetailScreen> {
                 contentPadding: EdgeInsets.zero,
                 title: Text(post.username),
                 subtitle: Text(DateFormat('MMM d - HH:mm').format(post.createdAt)),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      post.likedByMe ? Icons.favorite : Icons.favorite_border,
+                      color: post.likedByMe ? Colors.redAccent : null,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 4),
+                    Text('${post.likeCount}'),
+                  ],
+                ),
               ),
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: PostMedia(post: post, stats: post.statsJson),
+                child: PostMedia(post: post, stats: stats),
               ),
               const SizedBox(height: 12),
               Text(post.caption),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  _MetricChip(label: 'Distance', value: '${stats['distanceKm'] ?? '-'} km'),
+                  _MetricChip(label: 'Duration', value: '${stats['durationMin'] ?? '-'} min'),
+                  _MetricChip(label: 'Calories', value: '${stats['calories'] ?? '-'} kcal'),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => ref.read(feedActionsProvider).like(post.id),
+                    icon: Icon(
+                      post.likedByMe ? Icons.favorite : Icons.favorite_border,
+                      color: post.likedByMe ? Colors.redAccent : null,
+                    ),
+                    label: Text(post.likedByMe ? 'Unlike' : 'Like'),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton.icon(
+                    onPressed: () => setState(() => _status = 'Share flow is the next slice.'),
+                    icon: const Icon(Icons.share_outlined),
+                    label: const Text('Share'),
+                  ),
+                ],
+              ),
               const SizedBox(height: 16),
               TextField(
                 controller: _commentController,
@@ -139,6 +181,20 @@ class _FeedPostDetailScreenState extends ConsumerState<FeedPostDetailScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+class _MetricChip extends StatelessWidget {
+  const _MetricChip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      label: Text('$label: $value'),
     );
   }
 }

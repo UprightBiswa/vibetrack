@@ -40,3 +40,4 @@ class FeedPostResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     username: str
+    liked_by_me: bool = False

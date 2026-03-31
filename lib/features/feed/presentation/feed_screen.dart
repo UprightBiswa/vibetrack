@@ -74,7 +74,10 @@ class FeedScreen extends ConsumerWidget {
                         children: [
                           IconButton(
                             onPressed: () => ref.read(feedActionsProvider).like(post.id),
-                            icon: const Icon(Icons.favorite_border),
+                            icon: Icon(
+                              post.likedByMe ? Icons.favorite : Icons.favorite_border,
+                              color: post.likedByMe ? Colors.redAccent : null,
+                            ),
                           ),
                           Text('${post.likeCount}'),
                           const SizedBox(width: 12),
@@ -83,6 +86,11 @@ class FeedScreen extends ConsumerWidget {
                             icon: const Icon(Icons.chat_bubble_outline),
                           ),
                           Text('${post.commentCount}'),
+                          const SizedBox(width: 12),
+                          IconButton(
+                            onPressed: () => context.push(AppRoutes.feedPost(post.id)),
+                            icon: const Icon(Icons.share_outlined),
+                          ),
                         ],
                       ),
                     ],

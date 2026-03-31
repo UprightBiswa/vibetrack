@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import CurrentUser
-from app.modules.feed.models import FeedComment, FeedPost
+from app.modules.feed.models import FeedComment, FeedPost, FeedPostLike
 from app.modules.feed.schemas import (
     CreateFeedCommentRequest,
     CreateFeedPostRequest,
@@ -37,6 +37,15 @@ class FeedService:
             .order_by(FeedComment.created_at.asc())
         )
         return list(result.scalars())
+
+    async def has_liked(self, post_id: str, user_id: str) -> bool:
+        result = await self.session.execute(
+            select(FeedPostLike.id).where(
+                FeedPostLike.post_id == post_id,
+                FeedPostLike.user_id == user_id,
+            )
+        )
+        return result.scalar_one_or_none() is not None
 
     async def create_post(self, user: CurrentUser, payload: CreateFeedPostRequest) -> FeedPost:
         await self.profile_service.get_or_create_profile(user)
@@ -83,17 +92,45 @@ class FeedService:
         await self.session.refresh(comment)
         return comment
 
-    async def like_post(self, post_id: str) -> FeedPost | None:
+    async def toggle_like(self, post_id: str, user: CurrentUser) -> FeedPost | None:
+        await self.profile_service.get_or_create_profile(user)
         post = await self.session.get(FeedPost, post_id)
         if post is None:
             return None
-        post.like_count += 1
+
+        result = await self.session.execute(
+            select(FeedPostLike).where(
+                FeedPostLike.post_id == post_id,
+                FeedPostLike.user_id == user.user_id,
+            )
+        )
+        existing_like = result.scalar_one_or_none()
+
+        if existing_like is None:
+            like = FeedPostLike(
+                id=str(uuid4()),
+                post_id=post_id,
+                user_id=user.user_id,
+            )
+            self.session.add(like)
+            post.like_count += 1
+        else:
+            await self.session.delete(existing_like)
+            post.like_count = max(0, post.like_count - 1)
+
         await self.session.commit()
         await self.session.refresh(post)
         return post
 
-    async def to_response(self, post: FeedPost) -> FeedPostResponse:
+    async def to_response(
+        self,
+        post: FeedPost,
+        current_user: CurrentUser | None = None,
+    ) -> FeedPostResponse:
         profile = await self.session.get(Profile, post.user_id)
+        liked_by_me = False
+        if current_user is not None:
+            liked_by_me = await self.has_liked(post.id, current_user.user_id)
         return FeedPostResponse(
             id=post.id,
             user_id=post.user_id,
@@ -106,6 +143,7 @@ class FeedService:
             created_at=post.created_at,
             updated_at=post.updated_at,
             username=(profile.username if profile else 'Rider'),
+            liked_by_me=liked_by_me,
         )
 
     async def comment_to_response(self, comment: FeedComment) -> FeedCommentResponse:

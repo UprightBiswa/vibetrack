@@ -1,6 +1,6 @@
 ﻿from __future__ import annotations
 
-from sqlalchemy import ForeignKey, Integer, String, Text
+from sqlalchemy import ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -34,6 +34,11 @@ class FeedPost(Base, TimestampMixin):
         cascade='all, delete-orphan',
         order_by='FeedComment.created_at.asc()',
     )
+    likes = relationship(
+        'FeedPostLike',
+        back_populates='post',
+        cascade='all, delete-orphan',
+    )
 
 
 class FeedComment(Base, TimestampMixin):
@@ -51,3 +56,20 @@ class FeedComment(Base, TimestampMixin):
     body: Mapped[str] = mapped_column(Text, default='', nullable=False)
 
     post = relationship('FeedPost', back_populates='comments')
+
+
+class FeedPostLike(Base, TimestampMixin):
+    __tablename__ = 'feed_post_likes'
+    __table_args__ = (UniqueConstraint('post_id', 'user_id', name='uq_feed_post_like_user'),)
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    post_id: Mapped[str] = mapped_column(
+        ForeignKey('feed_posts.id', ondelete='CASCADE'),
+        index=True,
+    )
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey('profiles.id', ondelete='CASCADE'),
+        index=True,
+    )
+
+    post = relationship('FeedPost', back_populates='likes')

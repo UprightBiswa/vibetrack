@@ -1,4 +1,4 @@
-import 'dart:math';
+﻿import 'dart:math';
 
 import 'package:dio/dio.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -16,6 +16,7 @@ abstract class ProfileRepository {
     String avatarUrl = '',
   });
   Future<void> addAura({required String userId, required int delta});
+  Future<int?> getMyRank();
 }
 
 class ApiProfileRepository implements ProfileRepository {
@@ -29,7 +30,9 @@ class ApiProfileRepository implements ProfileRepository {
     required String email,
   }) async {
     final response = await _dio.get<Map<String, dynamic>>('/api/v1/profiles/me');
-    return UserProfile.fromJson(response.data!);
+    final profile = UserProfile.fromJson(response.data!);
+    final rank = await getMyRank();
+    return profile.copyWith(globalRank: rank);
   }
 
   @override
@@ -59,7 +62,9 @@ class ApiProfileRepository implements ProfileRepository {
         'avatar_url': avatarUrl,
       },
     );
-    return UserProfile.fromJson(response.data!);
+    final profile = UserProfile.fromJson(response.data!);
+    final rank = await getMyRank();
+    return profile.copyWith(globalRank: rank);
   }
 
   @override
@@ -68,6 +73,12 @@ class ApiProfileRepository implements ProfileRepository {
       '/api/v1/profiles/me/aura',
       data: {'delta': delta},
     );
+  }
+
+  @override
+  Future<int?> getMyRank() async {
+    final response = await _dio.get<Map<String, dynamic>>('/api/v1/profiles/me/rank');
+    return response.data?['global_rank'] as int?;
   }
 }
 
@@ -147,6 +158,9 @@ class SupabaseProfileRepository implements ProfileRepository {
         .update({'aura_points': max(current + delta, 0)})
         .eq('id', userId);
   }
+
+  @override
+  Future<int?> getMyRank() async => null;
 }
 
 class LocalProfileRepository implements ProfileRepository {
@@ -168,6 +182,7 @@ class LocalProfileRepository implements ProfileRepository {
       homeCity: 'Demo City',
       createdAt: DateTime.now(),
       email: email,
+      globalRank: 1,
     );
     _profiles[userId] = created;
     return created;
@@ -201,6 +216,9 @@ class LocalProfileRepository implements ProfileRepository {
       auraPoints: profile.auraPoints + delta,
     );
   }
+
+  @override
+  Future<int?> getMyRank() async => _profiles.values.isEmpty ? null : 1;
 }
 
 String _safeUsernameFromEmail(String email) {
@@ -208,4 +226,3 @@ String _safeUsernameFromEmail(String email) {
   if (head.isEmpty) return 'rider';
   return head;
 }
-

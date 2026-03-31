@@ -2,7 +2,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db_session
-from app.core.security import CurrentUser, get_current_user
+from app.core.security import CurrentUser, get_current_user, get_optional_current_user
 from app.modules.feed.schemas import (
     CreateFeedCommentRequest,
     CreateFeedPostRequest,
@@ -17,22 +17,24 @@ router = APIRouter()
 @router.get('/posts', response_model=list[FeedPostResponse])
 async def list_feed_posts(
     session: AsyncSession = Depends(get_db_session),
+    user: CurrentUser | None = Depends(get_optional_current_user),
 ) -> list[FeedPostResponse]:
     service = FeedService(session)
     posts = await service.list_posts()
-    return [await service.to_response(post) for post in posts]
+    return [await service.to_response(post, user) for post in posts]
 
 
 @router.get('/posts/{post_id}', response_model=FeedPostResponse)
 async def get_feed_post(
     post_id: str,
     session: AsyncSession = Depends(get_db_session),
+    user: CurrentUser | None = Depends(get_optional_current_user),
 ) -> FeedPostResponse:
     service = FeedService(session)
     post = await service.get_post(post_id)
     if post is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Post not found')
-    return await service.to_response(post)
+    return await service.to_response(post, user)
 
 
 @router.get('/posts/{post_id}/comments', response_model=list[FeedCommentResponse])
@@ -59,7 +61,7 @@ async def create_feed_post(
         post = await service.create_post(user, request)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-    return await service.to_response(post)
+    return await service.to_response(post, user)
 
 
 @router.post('/posts/{post_id}/comments', response_model=FeedCommentResponse)
@@ -78,12 +80,13 @@ async def create_feed_comment(
 
 
 @router.post('/posts/{post_id}/like', response_model=FeedPostResponse)
-async def like_feed_post(
+async def toggle_feed_post_like(
     post_id: str,
+    user: CurrentUser = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> FeedPostResponse:
     service = FeedService(session)
-    post = await service.like_post(post_id)
+    post = await service.toggle_like(post_id, user)
     if post is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Post not found')
-    return await service.to_response(post)
+    return await service.to_response(post, user)
