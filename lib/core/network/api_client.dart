@@ -53,9 +53,25 @@ final apiClientProvider = Provider<Dio?>((ref) {
       },
       onError: (error, handler) {
         final response = error.response;
-        final detail = response?.data is Map<String, dynamic>
+        final responseDetail = response?.data is Map<String, dynamic>
             ? (response?.data['detail']?.toString() ?? response?.statusMessage)
             : response?.statusMessage;
+
+        final message = switch (error.type) {
+          DioExceptionType.connectionError =>
+            'Unable to reach the backend API. Make sure the FastAPI server is running and adb reverse is active for port 8001.',
+          DioExceptionType.connectionTimeout =>
+            'Connection timed out while contacting the backend API.',
+          DioExceptionType.receiveTimeout =>
+            'The backend API took too long to respond.',
+          DioExceptionType.badCertificate => 'The backend SSL certificate is invalid.',
+          DioExceptionType.badResponse =>
+            responseDetail ?? 'The backend returned an unexpected response.',
+          DioExceptionType.cancel => 'The request was cancelled.',
+          DioExceptionType.sendTimeout => 'Sending data to the backend timed out.',
+          DioExceptionType.unknown =>
+            responseDetail ?? error.message ?? 'Unexpected API error',
+        };
 
         AppLogger.error(
           'API error ${response?.statusCode ?? 'n/a'} ${error.requestOptions.uri}',
@@ -69,7 +85,7 @@ final apiClientProvider = Provider<Dio?>((ref) {
             response: error.response,
             type: error.type,
             error: ApiException(
-              detail ?? error.message ?? 'Unexpected API error',
+              message,
               statusCode: response?.statusCode,
             ),
           ),
