@@ -1,4 +1,4 @@
-from functools import lru_cache
+﻿from functools import lru_cache
 
 from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -49,6 +49,11 @@ class Settings(BaseSettings):
         if self.supabase_jwks_url_override:
             return self.supabase_jwks_url_override
         return f'{self.supabase_jwt_issuer}/.well-known/jwks.json'
+
+    @computed_field
+    @property
+    def supabase_userinfo_url(self) -> str:
+        return f'{self.supabase_jwt_issuer}/user'
 
     @property
     def superadmin_email_set(self) -> set[str]:

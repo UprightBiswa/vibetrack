@@ -1,5 +1,6 @@
-from dataclasses import dataclass
+﻿from dataclasses import dataclass
 
+import httpx
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWKClient, decode
@@ -29,6 +30,19 @@ def decode_supabase_token(token: str) -> dict:
     )
 
 
+async def fetch_supabase_user(token: str) -> dict:
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.get(
+            settings.supabase_userinfo_url,
+            headers={
+                'Authorization': f'Bearer {token}',
+                'apikey': settings.supabase_anon_key or '',
+            },
+        )
+    response.raise_for_status()
+    return response.json()
+
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
 ) -> CurrentUser:
@@ -38,18 +52,30 @@ async def get_current_user(
             detail='Missing bearer token',
         )
 
+    token = credentials.credentials
+
     try:
-        payload = decode_supabase_token(credentials.credentials)
-    except InvalidTokenError as exc:
+        payload = decode_supabase_token(token)
+        return CurrentUser(
+            user_id=str(payload.get('sub')),
+            email=payload.get('email'),
+            role=payload.get('role'),
+        )
+    except InvalidTokenError:
+        pass
+
+    try:
+        user_data = await fetch_supabase_user(token)
+    except httpx.HTTPError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Invalid token',
         ) from exc
 
     return CurrentUser(
-        user_id=str(payload.get('sub')),
-        email=payload.get('email'),
-        role=payload.get('role'),
+        user_id=str(user_data.get('id') or user_data.get('sub')),
+        email=user_data.get('email'),
+        role=user_data.get('role'),
     )
 
 
