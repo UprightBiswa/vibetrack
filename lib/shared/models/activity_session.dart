@@ -29,7 +29,9 @@ class ActivitySession {
       ActivitySession(
         id: json['id'] as String,
         userId: json['user_id'] as String,
-        type: _activityFromString((json['type'] ?? 'run') as String),
+        type: _activityFromString(
+          (json['type'] ?? json['activity_type'] ?? 'run') as String,
+        ),
         startedAt: DateTime.parse(json['started_at'] as String),
         endedAt: DateTime.parse(json['ended_at'] as String),
         distanceM: ((json['distance_m'] ?? 0) as num).toDouble(),

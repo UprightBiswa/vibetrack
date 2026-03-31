@@ -38,6 +38,13 @@ class ProfileService:
         await self.session.refresh(profile)
         return profile
 
+    async def add_aura(self, user: CurrentUser, delta: int) -> Profile:
+        profile = await self.get_or_create_profile(user)
+        profile.aura_points = max(profile.aura_points + delta, 0)
+        await self.session.commit()
+        await self.session.refresh(profile)
+        return profile
+
     async def list_profiles(self, limit: int = 20) -> list[Profile]:
         statement = (
             select(Profile)

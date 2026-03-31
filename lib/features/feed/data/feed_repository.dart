@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibetreck/shared/models/feed_post.dart';
 
@@ -5,6 +6,38 @@ abstract class FeedRepository {
   Future<List<FeedPost>> fetchPosts();
   Future<void> createPost(FeedPost post);
   Future<void> likePost(String postId);
+}
+
+class ApiFeedRepository implements FeedRepository {
+  ApiFeedRepository(this._dio);
+
+  final Dio _dio;
+
+  @override
+  Future<List<FeedPost>> fetchPosts() async {
+    final response = await _dio.get<List<dynamic>>('/api/v1/feed/posts');
+    return (response.data ?? <dynamic>[])
+        .map((item) => FeedPost.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  Future<void> createPost(FeedPost post) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/api/v1/feed/posts',
+      data: {
+        'session_id': post.sessionId.isEmpty ? null : post.sessionId,
+        'caption': post.caption,
+        'image_url': post.imageUrl,
+        'stats_json': post.statsJson,
+      },
+    );
+  }
+
+  @override
+  Future<void> likePost(String postId) async {
+    await _dio.post<Map<String, dynamic>>('/api/v1/feed/posts/$postId/like');
+  }
 }
 
 class SupabaseFeedRepository implements FeedRepository {
@@ -30,16 +63,9 @@ class SupabaseFeedRepository implements FeedRepository {
 
   @override
   Future<void> likePost(String postId) async {
-    final row = await _client
-        .from('posts')
-        .select('like_count')
-        .eq('id', postId)
-        .single();
+    final row = await _client.from('posts').select('like_count').eq('id', postId).single();
     final likes = (row['like_count'] ?? 0) as int;
-    await _client
-        .from('posts')
-        .update({'like_count': likes + 1})
-        .eq('id', postId);
+    await _client.from('posts').update({'like_count': likes + 1}).eq('id', postId);
   }
 }
 

@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:dio/dio.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibetreck/shared/models/user_profile.dart';
 
@@ -9,6 +10,29 @@ abstract class ProfileRepository {
     required String email,
   });
   Future<void> addAura({required String userId, required int delta});
+}
+
+class ApiProfileRepository implements ProfileRepository {
+  ApiProfileRepository(this._dio);
+
+  final Dio _dio;
+
+  @override
+  Future<UserProfile> getOrCreateProfile({
+    required String userId,
+    required String email,
+  }) async {
+    final response = await _dio.get<Map<String, dynamic>>('/api/v1/profiles/me');
+    return UserProfile.fromJson(response.data!);
+  }
+
+  @override
+  Future<void> addAura({required String userId, required int delta}) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/api/v1/profiles/me/aura',
+      data: {'delta': delta},
+    );
+  }
 }
 
 class SupabaseProfileRepository implements ProfileRepository {
@@ -37,11 +61,7 @@ class SupabaseProfileRepository implements ProfileRepository {
       'home_city': 'Unknown',
       'created_at': DateTime.now().toIso8601String(),
     };
-    final inserted = await _client
-        .from('profiles')
-        .insert(payload)
-        .select()
-        .single();
+    final inserted = await _client.from('profiles').insert(payload).select().single();
     return UserProfile.fromJson(inserted);
   }
 

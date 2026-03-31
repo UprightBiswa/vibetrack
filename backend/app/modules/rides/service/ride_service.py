@@ -7,7 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import CurrentUser
 from app.modules.profiles.service import ProfileService
 from app.modules.rides.models import RideSession, RideStatus
-from app.modules.rides.schemas import FinishRideRequest, StartRideRequest
+from app.modules.rides.schemas import (
+    CreateRideSessionRequest,
+    FinishRideRequest,
+    StartRideRequest,
+)
 
 
 class RideService:
@@ -15,7 +19,11 @@ class RideService:
         self.session = session
         self.profile_service = ProfileService(session)
 
-    async def start_ride(self, user: CurrentUser, payload: StartRideRequest) -> RideSession:
+    async def start_ride(
+        self,
+        user: CurrentUser,
+        payload: StartRideRequest,
+    ) -> RideSession:
         await self.profile_service.get_or_create_profile(user)
         ride = RideSession(
             id=str(uuid4()),
@@ -29,7 +37,36 @@ class RideService:
         await self.session.refresh(ride)
         return ride
 
-    async def finish_ride(self, user: CurrentUser, payload: FinishRideRequest) -> RideSession:
+    async def create_session(
+        self,
+        user: CurrentUser,
+        payload: CreateRideSessionRequest,
+    ) -> RideSession:
+        await self.profile_service.get_or_create_profile(user)
+        ride = RideSession(
+            id=payload.session_id,
+            user_id=user.user_id,
+            activity_type=payload.activity_type,
+            status=RideStatus.finished.value,
+            started_at=payload.started_at,
+            ended_at=payload.ended_at,
+            distance_m=payload.distance_m,
+            duration_s=payload.duration_s,
+            avg_speed_mps=payload.avg_speed_mps,
+            avg_pace=payload.avg_pace,
+            calories=payload.calories,
+            route_geojson=payload.route_geojson,
+        )
+        self.session.add(ride)
+        await self.session.commit()
+        await self.session.refresh(ride)
+        return ride
+
+    async def finish_ride(
+        self,
+        user: CurrentUser,
+        payload: FinishRideRequest,
+    ) -> RideSession:
         ride = await self.session.get(RideSession, payload.session_id)
         if ride is None or ride.user_id != user.user_id:
             raise ValueError('Ride session not found')
@@ -47,7 +84,17 @@ class RideService:
         await self.session.refresh(ride)
         return ride
 
-    async def list_rides(self, user: CurrentUser, limit: int = 50) -> list[RideSession]:
+    async def get_ride(self, user: CurrentUser, session_id: str) -> RideSession | None:
+        ride = await self.session.get(RideSession, session_id)
+        if ride is None or ride.user_id != user.user_id:
+            return None
+        return ride
+
+    async def list_rides(
+        self,
+        user: CurrentUser,
+        limit: int = 50,
+    ) -> list[RideSession]:
         result = await self.session.execute(
             select(RideSession)
             .where(RideSession.user_id == user.user_id)

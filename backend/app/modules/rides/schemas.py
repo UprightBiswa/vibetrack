@@ -13,6 +13,19 @@ class StartRideResponse(BaseModel):
     status: str
 
 
+class CreateRideSessionRequest(BaseModel):
+    session_id: str
+    activity_type: str = Field(default='ride', max_length=32)
+    started_at: datetime
+    ended_at: datetime
+    distance_m: float = 0
+    duration_s: int = 0
+    avg_speed_mps: float = 0
+    avg_pace: float = 0
+    calories: int = 0
+    route_geojson: dict = Field(default_factory=dict)
+
+
 class FinishRideRequest(BaseModel):
     session_id: str
     ended_at: datetime | None = None
@@ -28,6 +41,7 @@ class RideSummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
+    user_id: str
     activity_type: str
     status: str
     started_at: datetime

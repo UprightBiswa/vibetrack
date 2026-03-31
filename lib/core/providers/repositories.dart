@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibetreck/core/config/app_env.dart';
+import 'package:vibetreck/core/network/api_client.dart';
 import 'package:vibetreck/features/auth/data/auth_repository.dart';
 import 'package:vibetreck/features/feed/data/feed_repository.dart';
 import 'package:vibetreck/features/profile/data/profile_repository.dart';
@@ -25,6 +26,11 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 });
 
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
+  final apiClient = ref.watch(apiClientProvider);
+  if (apiClient != null) {
+    return ApiProfileRepository(apiClient);
+  }
+
   final client = ref.watch(supabaseClientProvider);
   if (client == null) {
     return LocalProfileRepository();
@@ -33,6 +39,11 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
 });
 
 final sessionRepositoryProvider = Provider<SessionRepository>((ref) {
+  final apiClient = ref.watch(apiClientProvider);
+  if (apiClient != null) {
+    return ApiSessionRepository(apiClient);
+  }
+
   final client = ref.watch(supabaseClientProvider);
   if (client == null) {
     return LocalSessionRepository();
@@ -41,6 +52,11 @@ final sessionRepositoryProvider = Provider<SessionRepository>((ref) {
 });
 
 final feedRepositoryProvider = Provider<FeedRepository>((ref) {
+  final apiClient = ref.watch(apiClientProvider);
+  if (apiClient != null) {
+    return ApiFeedRepository(apiClient);
+  }
+
   final client = ref.watch(supabaseClientProvider);
   if (client == null) {
     return LocalFeedRepository();

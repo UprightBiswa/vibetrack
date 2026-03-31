@@ -49,7 +49,8 @@ class FeedPost {
     createdAt: DateTime.parse(json['created_at'] as String),
     likeCount: (json['like_count'] ?? 0) as int,
     commentCount: (json['comment_count'] ?? 0) as int,
-    username: (json['profiles']?['username'] ?? 'Rider') as String,
+    username:
+        (json['username'] ?? json['profiles']?['username'] ?? 'Rider') as String,
   );
 
   Map<String, dynamic> toJson() => {

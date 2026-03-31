@@ -10,16 +10,19 @@ class AppEnv {
     required this.supabaseUrl,
     required this.supabaseAnonKey,
     required this.supabaseRedirectUrl,
+    required this.backendApiUrl,
   });
 
   final AppMode appMode;
   final String supabaseUrl;
   final String supabaseAnonKey;
   final String supabaseRedirectUrl;
+  final String backendApiUrl;
 
   bool get isProduction => appMode == AppMode.production;
   bool get hasSupabase => supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
   bool get hasSupabaseRedirectUrl => supabaseRedirectUrl.isNotEmpty;
+  bool get hasBackendApi => backendApiUrl.isNotEmpty;
   bool get hasRequiredProductionKeys => hasSupabase && hasSupabaseRedirectUrl;
 
   List<String> get missingProductionKeys {
@@ -47,12 +50,17 @@ class AppEnv {
       'SUPABASE_REDIRECT_URL',
       defaultValue: 'vibetreck://login-callback',
     );
+    const backendApiUrl = String.fromEnvironment(
+      'BACKEND_API_URL',
+      defaultValue: '',
+    );
 
     return AppEnv(
       appMode: _parseMode(modeRaw),
       supabaseUrl: supabaseUrl,
       supabaseAnonKey: supabaseAnonKey,
       supabaseRedirectUrl: supabaseRedirectUrl,
+      backendApiUrl: backendApiUrl,
     );
   }
 }

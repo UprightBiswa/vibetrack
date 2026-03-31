@@ -16,3 +16,7 @@ class UpdateProfileRequest(BaseModel):
     username: str | None = Field(default=None, max_length=64)
     avatar_url: str | None = Field(default=None, max_length=512)
     home_city: str | None = Field(default=None, max_length=128)
+
+
+class AddAuraRequest(BaseModel):
+    delta: int = 0

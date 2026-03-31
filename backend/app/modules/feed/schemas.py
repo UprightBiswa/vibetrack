@@ -23,3 +23,4 @@ class FeedPostResponse(BaseModel):
     comment_count: int
     created_at: datetime
     updated_at: datetime
+    username: str

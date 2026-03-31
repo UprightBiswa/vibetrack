@@ -72,7 +72,7 @@ copy .env.example .env
 6. Run the server
 
 ```bash
-uvicorn app.main:app --reload --app-dir .
+uvicorn app.main:app --host 0.0.0.0 --port 8001 --app-dir .
 ```
 
 ## Current DB-backed routes
@@ -83,11 +83,15 @@ uvicorn app.main:app --reload --app-dir .
 - `GET /api/v1/config/bootstrap`
 - `GET /api/v1/profiles/me`
 - `PUT /api/v1/profiles/me`
+- `POST /api/v1/profiles/me/aura`
+- `POST /api/v1/rides/sessions`
+- `GET /api/v1/rides/sessions/{session_id}`
 - `POST /api/v1/rides/sessions/start`
 - `POST /api/v1/rides/sessions/finish`
 - `GET /api/v1/rides/sessions/mine`
 - `GET /api/v1/feed/posts`
 - `POST /api/v1/feed/posts`
+- `POST /api/v1/feed/posts/{post_id}/like`
 
 Routes below still exist as scaffold only:
 - `GET /api/v1/zones`

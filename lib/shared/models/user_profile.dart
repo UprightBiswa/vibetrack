@@ -37,7 +37,8 @@ class UserProfile {
     avatarUrl: (json['avatar_url'] ?? '') as String,
     auraPoints: (json['aura_points'] ?? 0) as int,
     homeCity: (json['home_city'] ?? '') as String,
-    createdAt: DateTime.parse(json['created_at'] as String),
+    createdAt: DateTime.tryParse((json['created_at'] ?? '').toString()) ??
+        DateTime.now(),
   );
 
   Map<String, dynamic> toJson() => {
