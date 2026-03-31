@@ -69,58 +69,13 @@ class SupabaseZoneRepository implements ZoneRepository {
 
 class LocalZoneRepository implements ZoneRepository {
   @override
-  Future<List<Zone>> fetchZones() async {
-    return const [
-      Zone(
-        id: 'z1',
-        name: 'Downtown Grid',
-        polygon: {
-          'type': 'Polygon',
-          'coordinates': [
-            [
-              [77.5883, 12.9716],
-              [77.6001, 12.9716],
-              [77.6001, 12.9810],
-              [77.5883, 12.9810],
-              [77.5883, 12.9716],
-            ],
-          ],
-        },
-        city: 'Demo City',
-        scoreMultiplier: 1.1,
-        currentGuardianUserId: 'neonrider',
-      ),
-      Zone(
-        id: 'z2',
-        name: 'Hill Climb',
-        polygon: {
-          'type': 'Polygon',
-          'coordinates': [
-            [
-              [77.5700, 12.9450],
-              [77.5810, 12.9450],
-              [77.5810, 12.9530],
-              [77.5700, 12.9530],
-              [77.5700, 12.9450],
-            ],
-          ],
-        },
-        city: 'Demo City',
-        scoreMultiplier: 1.5,
-        currentGuardianUserId: null,
-      ),
-    ];
-  }
+  Future<List<Zone>> fetchZones() async => const [];
 
   @override
   Future<Map<String, dynamic>> claimZone({
     required String sessionId,
     required String zoneId,
   }) async {
-    return {
-      'claimStatus': 'claimed',
-      'guardianUserId': 'guest-user',
-      'auraAwarded': 55,
-    };
+    throw Exception('Zone claims are unavailable without backend configuration.');
   }
 }

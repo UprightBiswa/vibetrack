@@ -32,7 +32,19 @@ class SupabaseMediaUploadService implements MediaUploadService {
   }) async {
     final path =
         '$userId/$sessionId-${DateTime.now().millisecondsSinceEpoch}.png';
-    await _client.storage.from('posts').uploadBinary(path, bytes);
+    try {
+      await _client.storage.from('posts').uploadBinary(path, bytes);
+    } on StorageException catch (error) {
+      final message = error.message.toLowerCase();
+      if (message.contains('403') ||
+          message.contains('not authorized') ||
+          message.contains('permission')) {
+        throw Exception(
+          'Post upload is blocked by Supabase Storage policy. Create a public `posts` bucket and allow authenticated uploads.',
+        );
+      }
+      throw Exception(error.message);
+    }
     return _client.storage.from('posts').getPublicUrl(path);
   }
 }

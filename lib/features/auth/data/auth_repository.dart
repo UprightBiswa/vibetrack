@@ -97,11 +97,7 @@ class SupabaseAuthRepository implements AuthRepository {
 class LocalAuthRepository implements AuthRepository {
   final StreamController<AppUser?> _controller =
       StreamController<AppUser?>.broadcast();
-  AppUser? _user = const AppUser(
-    id: 'guest-user',
-    email: 'guest@vibetrack.local',
-    isGuest: true,
-  );
+  AppUser? _user;
 
   LocalAuthRepository() {
     _controller.add(_user);

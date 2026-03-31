@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:vibetreck/features/tracking/application/tracking_controller.dart';
 import 'package:vibetreck/features/zones/application/zone_controller.dart';
+import 'package:vibetreck/shared/widgets/app_empty_state.dart';
+import 'package:vibetreck/shared/widgets/app_error_state.dart';
 
 class ZonesScreen extends ConsumerWidget {
   const ZonesScreen({super.key});
@@ -21,7 +23,10 @@ class ZonesScreen extends ConsumerWidget {
             height: 240,
             child: zonesAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => Center(child: Text(error.toString())),
+              error: (error, _) => AppErrorState(
+                message: error.toString(),
+                onRetry: () => ref.invalidate(zonesProvider),
+              ),
               data: (zones) {
                 final centers = zones
                     .map((zone) => _extractZoneCenter(zone.polygon))
@@ -63,41 +68,64 @@ class ZonesScreen extends ConsumerWidget {
           Expanded(
             child: zonesAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => Center(child: Text(error.toString())),
-              data: (zones) => ListView.builder(
-                itemCount: zones.length,
-                itemBuilder: (context, index) {
-                  final zone = zones[index];
-                  return ListTile(
-                    title: Text(zone.name),
-                    subtitle: Text(
-                      '${zone.city} - x${zone.scoreMultiplier} aura',
-                    ),
-                    trailing: FilledButton(
-                      onPressed: lastSession == null
-                          ? null
-                          : () async {
-                              final result = await ref
-                                  .read(zoneActionsProvider)
-                                  .claim(
-                                    zoneId: zone.id,
-                                    sessionId: lastSession,
-                                  );
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Claim: ${result['claimStatus']}',
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
-                      child: const Text('Claim'),
-                    ),
-                  );
-                },
+              error: (error, _) => AppErrorState(
+                message: error.toString(),
+                onRetry: () => ref.invalidate(zonesProvider),
               ),
+              data: (zones) {
+                if (zones.isEmpty) {
+                  return const AppEmptyState(
+                    title: 'No zones available',
+                    message: 'Connect the backend and seed zones to see territory data here.',
+                    icon: Icons.map_outlined,
+                  );
+                }
+                return ListView.builder(
+                  itemCount: zones.length,
+                  itemBuilder: (context, index) {
+                    final zone = zones[index];
+                    return ListTile(
+                      title: Text(zone.name),
+                      subtitle: Text(
+                        '${zone.city} - x${zone.scoreMultiplier} aura',
+                      ),
+                      trailing: FilledButton(
+                        onPressed: lastSession == null
+                            ? null
+                            : () async {
+                                try {
+                                  final result = await ref
+                                      .read(zoneActionsProvider)
+                                      .claim(
+                                        zoneId: zone.id,
+                                        sessionId: lastSession,
+                                      );
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Claim: ${result['claimStatus']}',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                } catch (error) {
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        error.toString().replaceFirst('Exception: ', ''),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                        child: const Text('Claim'),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
           ),
         ],

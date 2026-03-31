@@ -63,27 +63,24 @@ class SupabaseFeedRepository implements FeedRepository {
 
   @override
   Future<void> likePost(String postId) async {
-    final row = await _client.from('posts').select('like_count').eq('id', postId).single();
+    final row = await _client
+        .from('posts')
+        .select('like_count')
+        .eq('id', postId)
+        .single();
     final likes = (row['like_count'] ?? 0) as int;
-    await _client.from('posts').update({'like_count': likes + 1}).eq('id', postId);
+    await _client
+        .from('posts')
+        .update({'like_count': likes + 1})
+        .eq('id', postId);
   }
 }
 
 class LocalFeedRepository implements FeedRepository {
-  final List<FeedPost> _items = [
-    FeedPost(
-      id: 'p1',
-      userId: 'guest-user',
-      sessionId: 's1',
-      imageUrl: '',
-      caption: 'Morning city loop.',
-      statsJson: {'distanceKm': 12.4, 'durationMin': 42, 'aura': 220},
-      createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-      likeCount: 18,
-      commentCount: 4,
-      username: 'neonrider',
-    ),
-  ];
+  LocalFeedRepository({List<FeedPost>? seedPosts})
+      : _items = List<FeedPost>.from(seedPosts ?? const []);
+
+  final List<FeedPost> _items;
 
   @override
   Future<List<FeedPost>> fetchPosts() async => List<FeedPost>.from(_items);

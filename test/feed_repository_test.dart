@@ -4,7 +4,19 @@ import 'package:vibetreck/shared/models/feed_post.dart';
 
 void main() {
   test('local feed like increments count', () async {
-    final repo = LocalFeedRepository();
+    final seed = FeedPost(
+      id: 'p-seed',
+      userId: 'u1',
+      sessionId: 's1',
+      imageUrl: '',
+      caption: 'seed',
+      statsJson: const {},
+      createdAt: DateTime.now(),
+      likeCount: 1,
+      commentCount: 0,
+      username: 'tester',
+    );
+    final repo = LocalFeedRepository(seedPosts: [seed]);
     final posts = await repo.fetchPosts();
     final target = posts.first;
     final before = target.likeCount;

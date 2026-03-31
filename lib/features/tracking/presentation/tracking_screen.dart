@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:vibetreck/features/tracking/application/tracking_controller.dart';
 
 class TrackingScreen extends ConsumerWidget {
@@ -36,6 +36,22 @@ class TrackingScreen extends ConsumerWidget {
         return;
       }
       controller.pause();
+    }
+
+    Future<void> onFinishTap() async {
+      try {
+        final sessionId = await controller.finish();
+        if (context.mounted) {
+          context.go('/summary/$sessionId');
+        }
+      } catch (error) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error.toString().replaceFirst('Exception: ', '')),
+          ),
+        );
+      }
     }
 
     final points = state.points
@@ -137,14 +153,7 @@ class TrackingScreen extends ConsumerWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: state.running
-                        ? () async {
-                            final sessionId = await controller.finish();
-                            if (context.mounted) {
-                              context.go('/summary/$sessionId');
-                            }
-                          }
-                        : null,
+                    onPressed: state.running ? onFinishTap : null,
                     child: const Text('Finish'),
                   ),
                 ),
