@@ -6,6 +6,7 @@ class UserProfile {
     required this.auraPoints,
     required this.homeCity,
     required this.createdAt,
+    this.email,
   });
 
   final String id;
@@ -14,12 +15,14 @@ class UserProfile {
   final int auraPoints;
   final String homeCity;
   final DateTime createdAt;
+  final String? email;
 
   UserProfile copyWith({
     String? username,
     String? avatarUrl,
     int? auraPoints,
     String? homeCity,
+    String? email,
   }) {
     return UserProfile(
       id: id,
@@ -28,6 +31,7 @@ class UserProfile {
       auraPoints: auraPoints ?? this.auraPoints,
       homeCity: homeCity ?? this.homeCity,
       createdAt: createdAt,
+      email: email ?? this.email,
     );
   }
 
@@ -39,6 +43,7 @@ class UserProfile {
     homeCity: (json['home_city'] ?? '') as String,
     createdAt: DateTime.tryParse((json['created_at'] ?? '').toString()) ??
         DateTime.now(),
+    email: json['email'] as String?,
   );
 
   Map<String, dynamic> toJson() => {
@@ -48,5 +53,6 @@ class UserProfile {
     'aura_points': auraPoints,
     'home_city': homeCity,
     'created_at': createdAt.toIso8601String(),
+    'email': email,
   };
 }

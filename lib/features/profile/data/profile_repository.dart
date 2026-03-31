@@ -9,6 +9,12 @@ abstract class ProfileRepository {
     required String userId,
     required String email,
   });
+  Future<UserProfile?> getProfileById(String profileId);
+  Future<UserProfile> updateProfile({
+    required String username,
+    required String homeCity,
+    String avatarUrl = '',
+  });
   Future<void> addAura({required String userId, required int delta});
 }
 
@@ -23,6 +29,36 @@ class ApiProfileRepository implements ProfileRepository {
     required String email,
   }) async {
     final response = await _dio.get<Map<String, dynamic>>('/api/v1/profiles/me');
+    return UserProfile.fromJson(response.data!);
+  }
+
+  @override
+  Future<UserProfile?> getProfileById(String profileId) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>('/api/v1/profiles/$profileId');
+      return UserProfile.fromJson(response.data!);
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 404) {
+        return null;
+      }
+      rethrow;
+    }
+  }
+
+  @override
+  Future<UserProfile> updateProfile({
+    required String username,
+    required String homeCity,
+    String avatarUrl = '',
+  }) async {
+    final response = await _dio.put<Map<String, dynamic>>(
+      '/api/v1/profiles/me',
+      data: {
+        'username': username,
+        'home_city': homeCity,
+        'avatar_url': avatarUrl,
+      },
+    );
     return UserProfile.fromJson(response.data!);
   }
 
@@ -60,9 +96,42 @@ class SupabaseProfileRepository implements ProfileRepository {
       'aura_points': 0,
       'home_city': 'Unknown',
       'created_at': DateTime.now().toIso8601String(),
+      'email': email,
     };
     final inserted = await _client.from('profiles').insert(payload).select().single();
     return UserProfile.fromJson(inserted);
+  }
+
+  @override
+  Future<UserProfile?> getProfileById(String profileId) async {
+    final response = await _client
+        .from('profiles')
+        .select()
+        .eq('id', profileId)
+        .maybeSingle();
+    if (response == null) return null;
+    return UserProfile.fromJson(response);
+  }
+
+  @override
+  Future<UserProfile> updateProfile({
+    required String username,
+    required String homeCity,
+    String avatarUrl = '',
+  }) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('User not authenticated');
+    final response = await _client
+        .from('profiles')
+        .update({
+          'username': username,
+          'home_city': homeCity,
+          'avatar_url': avatarUrl,
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+    return UserProfile.fromJson(response);
   }
 
   @override
@@ -98,9 +167,30 @@ class LocalProfileRepository implements ProfileRepository {
       auraPoints: 1200,
       homeCity: 'Demo City',
       createdAt: DateTime.now(),
+      email: email,
     );
     _profiles[userId] = created;
     return created;
+  }
+
+  @override
+  Future<UserProfile?> getProfileById(String profileId) async => _profiles[profileId];
+
+  @override
+  Future<UserProfile> updateProfile({
+    required String username,
+    required String homeCity,
+    String avatarUrl = '',
+  }) async {
+    final current = _profiles.values.isEmpty ? null : _profiles.values.first;
+    if (current == null) throw Exception('Profile not found');
+    final updated = current.copyWith(
+      username: username,
+      homeCity: homeCity,
+      avatarUrl: avatarUrl,
+    );
+    _profiles[current.id] = updated;
+    return updated;
   }
 
   @override
@@ -118,3 +208,4 @@ String _safeUsernameFromEmail(String email) {
   if (head.isEmpty) return 'rider';
   return head;
 }
+

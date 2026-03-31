@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:vibetreck/core/routing/app_routes.dart';
 import 'package:vibetreck/features/feed/application/feed_controller.dart';
 import 'package:vibetreck/shared/widgets/app_empty_state.dart';
 import 'package:vibetreck/shared/widgets/app_error_state.dart';
@@ -45,6 +47,7 @@ class FeedScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       ListTile(
+                        onTap: () => context.push(AppRoutes.publicProfile(post.userId)),
                         title: Text(post.username),
                         subtitle: Text(
                           DateFormat('MMM d - HH:mm').format(post.createdAt),

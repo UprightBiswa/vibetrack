@@ -10,7 +10,9 @@ import 'package:vibetreck/features/auth/presentation/auth_screen.dart';
 import 'package:vibetreck/features/auth/presentation/splash_screen.dart';
 import 'package:vibetreck/features/feed/presentation/feed_screen.dart';
 import 'package:vibetreck/features/home/presentation/home_screen.dart';
+import 'package:vibetreck/features/profile/presentation/edit_profile_screen.dart';
 import 'package:vibetreck/features/profile/presentation/profile_screen.dart';
+import 'package:vibetreck/features/profile/presentation/public_profile_screen.dart';
 import 'package:vibetreck/features/settings/presentation/settings_screen.dart';
 import 'package:vibetreck/features/tracking/presentation/session_summary_screen.dart';
 import 'package:vibetreck/features/tracking/presentation/tracking_screen.dart';
@@ -51,8 +53,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(path: AppRoutes.splash, builder: (context, state) => const SplashScreen()),
-      GoRoute(path: AppRoutes.auth, builder: (context, state) => const AuthScreen()),
+      GoRoute(
+        path: AppRoutes.splash,
+        builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.auth,
+        builder: (context, state) => const AuthScreen(),
+      ),
       ShellRoute(
         builder: (context, state, child) {
           return AppScaffold(
@@ -62,14 +70,42 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           );
         },
         routes: [
-          GoRoute(path: AppRoutes.home, builder: (context, state) => const HomeScreen()),
-          GoRoute(path: AppRoutes.feed, builder: (context, state) => const FeedScreen()),
-          GoRoute(path: AppRoutes.zones, builder: (context, state) => const ZonesScreen()),
-          GoRoute(path: AppRoutes.profile, builder: (context, state) => const ProfileScreen()),
-          GoRoute(path: AppRoutes.settings, builder: (context, state) => const SettingsScreen()),
+          GoRoute(
+            path: AppRoutes.home,
+            builder: (context, state) => const HomeScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.feed,
+            builder: (context, state) => const FeedScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.zones,
+            builder: (context, state) => const ZonesScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.profile,
+            builder: (context, state) => const ProfileScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.settings,
+            builder: (context, state) => const SettingsScreen(),
+          ),
         ],
       ),
-      GoRoute(path: AppRoutes.tracking, builder: (context, state) => const TrackingScreen()),
+      GoRoute(
+        path: AppRoutes.editProfile,
+        builder: (context, state) => const EditProfileScreen(),
+      ),
+      GoRoute(
+        path: '/profile/view/:profileId',
+        builder: (context, state) => PublicProfileScreen(
+          profileId: state.pathParameters['profileId'] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.tracking,
+        builder: (context, state) => const TrackingScreen(),
+      ),
       GoRoute(
         path: '/summary/:sessionId',
         builder: (context, state) => SessionSummaryScreen(

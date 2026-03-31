@@ -29,6 +29,9 @@ class ProfileService:
             await self.session.refresh(profile)
         return profile
 
+    async def get_profile_by_id(self, profile_id: str) -> Profile | None:
+        return await self.session.get(Profile, profile_id)
+
     async def update_profile(self, user: CurrentUser, payload: UpdateProfileRequest) -> Profile:
         profile = await self.get_or_create_profile(user)
         data = payload.model_dump(exclude_none=True)
@@ -46,10 +49,6 @@ class ProfileService:
         return profile
 
     async def list_profiles(self, limit: int = 20) -> list[Profile]:
-        statement = (
-            select(Profile)
-            .order_by(Profile.created_at.desc())
-            .limit(limit)
-        )
+        statement = select(Profile).order_by(Profile.created_at.desc()).limit(limit)
         result = await self.session.execute(statement)
         return list(result.scalars())

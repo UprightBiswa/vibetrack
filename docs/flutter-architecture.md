@@ -41,7 +41,8 @@ Instead, the app follows a practical clean architecture shape:
 5. Repository adapters map API payloads into app models
 
 ## Current backend-backed features
-- profile
+- profile get/update
+- public profile read by id
 - ride session create/get
 - feed list/create/like
 - zones list/claim
@@ -58,3 +59,28 @@ Instead, the app follows a practical clean architecture shape:
 3. Add WebSocket client for live ride sharing
 4. Add FCM token registration and notification handling
 5. Add notifications/admin API adapters when backend modules are ready
+
+## Done For Now
+
+The current Flutter baseline is considered stable for the implemented feature set.
+
+Implemented now:
+- Riverpod + GoRouter app shell
+- shared route constants
+- shared theme and shell widgets
+- Dio backend client
+- auth token attachment from Supabase session
+- connectivity-aware API calls
+- shared API error mapping/logging
+- backend-backed repositories for profile, rides, feed, and zones
+- edit profile screen wired to backend update API
+- public profile screen reachable from the feed
+
+Deferred to later phases:
+- BLoC/GetX rewrite
+- GraphQL client
+- WebSocket client
+- offline DB and sync engine
+- dynamic runtime theming
+- admin UI flows
+
