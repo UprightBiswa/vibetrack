@@ -91,3 +91,9 @@ Deferred to later phases:
 - Added backend-backed comments retrieval and comment creation.
 - Feed repository now supports `fetchPost`, `fetchComments`, and `addComment`.
 - This keeps the app on the current Riverpod + repository pattern without introducing another state layer.
+
+## Latest Checkpoint
+- Added leaderboard provider/screen using backend aura ranking.
+- Added streak display on home/profile sourced from backend ride history.
+- Added backend-backed one-like-per-user feed state.
+- Added a dedicated share card preview on post detail; native share now depends on `share_plus` and `path_provider`.

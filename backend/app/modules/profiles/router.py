@@ -8,6 +8,7 @@ from app.modules.profiles.schemas import (
     LeaderboardEntryResponse,
     ProfileRankResponse,
     ProfileResponse,
+    ProfileStreakResponse,
     UpdateProfileRequest,
 )
 from app.modules.profiles.service import ProfileService
@@ -35,6 +36,19 @@ async def get_my_rank(
     if rank is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Profile not found')
     return ProfileRankResponse(profile_id=profile.id, aura_points=profile.aura_points, global_rank=rank)
+
+
+@router.get('/me/streak', response_model=ProfileStreakResponse)
+async def get_my_streak(
+    user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> ProfileStreakResponse:
+    service = ProfileService(session)
+    profile = await service.get_or_create_profile(user)
+    streak = await service.get_streak(profile.id)
+    if streak is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Profile not found')
+    return streak
 
 
 @router.get('/leaderboard', response_model=list[LeaderboardEntryResponse])

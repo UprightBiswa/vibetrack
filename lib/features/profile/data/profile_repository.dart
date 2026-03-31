@@ -2,6 +2,7 @@
 
 import 'package:dio/dio.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:vibetreck/shared/models/leaderboard_entry.dart';
 import 'package:vibetreck/shared/models/user_profile.dart';
 
 abstract class ProfileRepository {
@@ -17,6 +18,8 @@ abstract class ProfileRepository {
   });
   Future<void> addAura({required String userId, required int delta});
   Future<int?> getMyRank();
+  Future<Map<String, dynamic>> getMyStreak();
+  Future<List<LeaderboardEntry>> getLeaderboard({int limit = 20});
 }
 
 class ApiProfileRepository implements ProfileRepository {
@@ -32,7 +35,13 @@ class ApiProfileRepository implements ProfileRepository {
     final response = await _dio.get<Map<String, dynamic>>('/api/v1/profiles/me');
     final profile = UserProfile.fromJson(response.data!);
     final rank = await getMyRank();
-    return profile.copyWith(globalRank: rank);
+    final streak = await getMyStreak();
+    return profile.copyWith(
+      globalRank: rank,
+      currentStreakDays: streak['current_streak_days'] as int?,
+      longestStreakDays: streak['longest_streak_days'] as int?,
+      activeToday: streak['active_today'] as bool?,
+    );
   }
 
   @override
@@ -64,7 +73,13 @@ class ApiProfileRepository implements ProfileRepository {
     );
     final profile = UserProfile.fromJson(response.data!);
     final rank = await getMyRank();
-    return profile.copyWith(globalRank: rank);
+    final streak = await getMyStreak();
+    return profile.copyWith(
+      globalRank: rank,
+      currentStreakDays: streak['current_streak_days'] as int?,
+      longestStreakDays: streak['longest_streak_days'] as int?,
+      activeToday: streak['active_today'] as bool?,
+    );
   }
 
   @override
@@ -79,6 +94,23 @@ class ApiProfileRepository implements ProfileRepository {
   Future<int?> getMyRank() async {
     final response = await _dio.get<Map<String, dynamic>>('/api/v1/profiles/me/rank');
     return response.data?['global_rank'] as int?;
+  }
+
+  @override
+  Future<Map<String, dynamic>> getMyStreak() async {
+    final response = await _dio.get<Map<String, dynamic>>('/api/v1/profiles/me/streak');
+    return response.data ?? <String, dynamic>{};
+  }
+
+  @override
+  Future<List<LeaderboardEntry>> getLeaderboard({int limit = 20}) async {
+    final response = await _dio.get<List<dynamic>>(
+      '/api/v1/profiles/leaderboard',
+      queryParameters: {'limit': limit},
+    );
+    return (response.data ?? <dynamic>[])
+        .map((item) => LeaderboardEntry.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 }
 
@@ -161,6 +193,12 @@ class SupabaseProfileRepository implements ProfileRepository {
 
   @override
   Future<int?> getMyRank() async => null;
+
+  @override
+  Future<Map<String, dynamic>> getMyStreak() async => <String, dynamic>{};
+
+  @override
+  Future<List<LeaderboardEntry>> getLeaderboard({int limit = 20}) async => const [];
 }
 
 class LocalProfileRepository implements ProfileRepository {
@@ -183,6 +221,9 @@ class LocalProfileRepository implements ProfileRepository {
       createdAt: DateTime.now(),
       email: email,
       globalRank: 1,
+      currentStreakDays: 3,
+      longestStreakDays: 7,
+      activeToday: true,
     );
     _profiles[userId] = created;
     return created;
@@ -219,6 +260,28 @@ class LocalProfileRepository implements ProfileRepository {
 
   @override
   Future<int?> getMyRank() async => _profiles.values.isEmpty ? null : 1;
+
+  @override
+  Future<Map<String, dynamic>> getMyStreak() async => {
+        'current_streak_days': 3,
+        'longest_streak_days': 7,
+        'active_today': true,
+      };
+
+  @override
+  Future<List<LeaderboardEntry>> getLeaderboard({int limit = 20}) async {
+    return _profiles.values
+        .toList()
+        .asMap()
+        .entries
+        .map((entry) => LeaderboardEntry(
+              profileId: entry.value.id,
+              username: entry.value.username,
+              auraPoints: entry.value.auraPoints,
+              globalRank: entry.key + 1,
+            ))
+        .toList();
+  }
 }
 
 String _safeUsernameFromEmail(String email) {

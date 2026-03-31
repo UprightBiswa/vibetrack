@@ -1,6 +1,7 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vibetreck/core/providers/repositories.dart';
 import 'package:vibetreck/features/auth/application/auth_controller.dart';
+import 'package:vibetreck/shared/models/leaderboard_entry.dart';
 import 'package:vibetreck/shared/models/user_profile.dart';
 
 final currentProfileProvider = FutureProvider<UserProfile?>(
@@ -18,6 +19,13 @@ final profileByIdProvider = FutureProvider.family<UserProfile?, String>(
   retry: (count, error) => null,
   (ref, profileId) {
     return ref.read(profileRepositoryProvider).getProfileById(profileId);
+  },
+);
+
+final leaderboardProvider = FutureProvider<List<LeaderboardEntry>>(
+  retry: (count, error) => null,
+  (ref) async {
+    return ref.read(profileRepositoryProvider).getLeaderboard();
   },
 );
 
@@ -42,6 +50,7 @@ class ProfileActions {
     );
     _ref.invalidate(currentProfileProvider);
     _ref.invalidate(profileByIdProvider(profile.id));
+    _ref.invalidate(leaderboardProvider);
     return profile;
   }
 }

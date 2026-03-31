@@ -57,6 +57,21 @@ class ProfileScreen extends ConsumerWidget {
               ),
               Card(
                 child: ListTile(
+                  title: const Text('Current Streak'),
+                  subtitle: Text((profile?.activeToday ?? false)
+                      ? 'Active today'
+                      : 'Ride today to continue'),
+                  trailing: Text('${profile?.currentStreakDays ?? 0} days'),
+                ),
+              ),
+              Card(
+                child: ListTile(
+                  title: const Text('Longest Streak'),
+                  trailing: Text('${profile?.longestStreakDays ?? 0} days'),
+                ),
+              ),
+              Card(
+                child: ListTile(
                   title: const Text('Home City'),
                   trailing: Text(profile?.homeCity ?? '-'),
                 ),
@@ -64,9 +79,11 @@ class ProfileScreen extends ConsumerWidget {
               Card(
                 child: ListTile(
                   title: const Text('Global Aura Rank'),
+                  subtitle: const Text('Tap to open leaderboard'),
                   trailing: Text(
                     profile?.globalRank != null ? '#${profile!.globalRank}' : '-',
                   ),
+                  onTap: () => context.push(AppRoutes.leaderboard),
                 ),
               ),
               const SizedBox(height: 12),

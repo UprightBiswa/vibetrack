@@ -12,6 +12,7 @@ import 'package:vibetreck/features/feed/presentation/feed_post_detail_screen.dar
 import 'package:vibetreck/features/feed/presentation/feed_screen.dart';
 import 'package:vibetreck/features/home/presentation/home_screen.dart';
 import 'package:vibetreck/features/profile/presentation/edit_profile_screen.dart';
+import 'package:vibetreck/features/profile/presentation/leaderboard_screen.dart';
 import 'package:vibetreck/features/profile/presentation/profile_screen.dart';
 import 'package:vibetreck/features/profile/presentation/public_profile_screen.dart';
 import 'package:vibetreck/features/settings/presentation/settings_screen.dart';
@@ -103,6 +104,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const EditProfileScreen(),
       ),
       GoRoute(
+        path: AppRoutes.leaderboard,
+        builder: (context, state) => const LeaderboardScreen(),
+      ),
+      GoRoute(
         path: '/profile/view/:profileId',
         builder: (context, state) => PublicProfileScreen(
           profileId: state.pathParameters['profileId'] ?? '',
@@ -141,4 +146,3 @@ class GoRouterRefreshStream extends ChangeNotifier {
     super.dispose();
   }
 }
-

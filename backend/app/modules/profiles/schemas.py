@@ -18,6 +18,13 @@ class ProfileRankResponse(BaseModel):
     global_rank: int
 
 
+class ProfileStreakResponse(BaseModel):
+    profile_id: str
+    current_streak_days: int
+    longest_streak_days: int
+    active_today: bool
+
+
 class LeaderboardEntryResponse(BaseModel):
     profile_id: str
     username: str

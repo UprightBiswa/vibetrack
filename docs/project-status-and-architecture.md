@@ -563,3 +563,10 @@ Recommended next implementation order from this checkpoint:
 - Flutter feed now opens a post detail screen.
 - Flutter users can add comments from the post detail screen.
 - Feed comment counts now have a real backend path instead of static placeholder display.
+
+## 21. Leaderboard Streak Share Slice Implemented On 2026-04-01
+- Post likes are now one-like-per-user with backend-backed toggle state.
+- Profile rank is backend-backed and the previous dummy leaderboard card was removed.
+- Added backend streak calculation from finished rides without introducing a risky schema migration.
+- Added leaderboard screen in Flutter.
+- Added share-card preview plus native share-sheet integration path for posts.

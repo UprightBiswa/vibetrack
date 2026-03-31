@@ -9,6 +9,7 @@
   static const settings = '/settings';
   static const tracking = '/tracking';
   static const feedPostPath = '/feed/post/:postId';
+  static const leaderboard = '/leaderboard';
 
   static const shellTabs = <String>[
     home,

@@ -8,6 +8,9 @@
     required this.createdAt,
     this.email,
     this.globalRank,
+    this.currentStreakDays,
+    this.longestStreakDays,
+    this.activeToday,
   });
 
   final String id;
@@ -18,6 +21,9 @@
   final DateTime createdAt;
   final String? email;
   final int? globalRank;
+  final int? currentStreakDays;
+  final int? longestStreakDays;
+  final bool? activeToday;
 
   UserProfile copyWith({
     String? username,
@@ -26,6 +32,9 @@
     String? homeCity,
     String? email,
     int? globalRank,
+    int? currentStreakDays,
+    int? longestStreakDays,
+    bool? activeToday,
   }) {
     return UserProfile(
       id: id,
@@ -36,6 +45,9 @@
       createdAt: createdAt,
       email: email ?? this.email,
       globalRank: globalRank ?? this.globalRank,
+      currentStreakDays: currentStreakDays ?? this.currentStreakDays,
+      longestStreakDays: longestStreakDays ?? this.longestStreakDays,
+      activeToday: activeToday ?? this.activeToday,
     );
   }
 
@@ -49,6 +61,9 @@
         DateTime.now(),
     email: json['email'] as String?,
     globalRank: json['global_rank'] as int?,
+    currentStreakDays: json['current_streak_days'] as int?,
+    longestStreakDays: json['longest_streak_days'] as int?,
+    activeToday: json['active_today'] as bool?,
   );
 
   Map<String, dynamic> toJson() => {
@@ -60,5 +75,8 @@
     'created_at': createdAt.toIso8601String(),
     'email': email,
     'global_rank': globalRank,
+    'current_streak_days': currentStreakDays,
+    'longest_streak_days': longestStreakDays,
+    'active_today': activeToday,
   };
 }

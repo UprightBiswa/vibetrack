@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:go_router/go_router.dart';
@@ -18,8 +18,11 @@ class HomeScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('VibeTrack'),
-        actions: const [
-          Padding(padding: EdgeInsets.all(16), child: Icon(Icons.bolt_rounded)),
+        actions: [
+          IconButton(
+            onPressed: () => context.push(AppRoutes.leaderboard),
+            icon: const Icon(Icons.emoji_events_rounded),
+          ),
         ],
       ),
       body: Padding(
@@ -43,10 +46,21 @@ class HomeScreen extends ConsumerWidget {
               crossAxisCellCount: 2,
               mainAxisCellCount: 1,
               child: BentoCard(
-                title: 'Zone Status',
-                value: 'Guardian',
-                subtitle: profile?.homeCity ?? 'City',
+                title: 'Streak',
+                value: '${profile?.currentStreakDays ?? 0} days',
+                subtitle: (profile?.activeToday ?? false)
+                    ? 'Active today'
+                    : 'Ride today to keep it alive',
                 accent: AppTheme.secondary,
+              ),
+            ),
+            StaggeredGridTile.count(
+              crossAxisCellCount: 2,
+              mainAxisCellCount: 1,
+              child: BentoCard(
+                title: 'Global Rank',
+                value: profile?.globalRank != null ? '#${profile!.globalRank}' : '-',
+                subtitle: 'Aura leaderboard',
               ),
             ),
             StaggeredGridTile.count(
