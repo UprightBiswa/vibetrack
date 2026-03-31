@@ -3,12 +3,14 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:vibetreck/features/auth/application/auth_controller.dart';
 import 'package:vibetreck/features/feed/application/feed_controller.dart';
 import 'package:vibetreck/features/tracking/application/tracking_controller.dart';
 import 'package:vibetreck/features/tracking/presentation/widgets/flex_overlay_card.dart';
 import 'package:vibetreck/shared/services/media_upload_service.dart';
+import 'package:vibetreck/shared/widgets/app_error_state.dart';
 
 class SessionSummaryScreen extends ConsumerStatefulWidget {
   const SessionSummaryScreen({super.key, required this.sessionId});
@@ -22,11 +24,48 @@ class SessionSummaryScreen extends ConsumerStatefulWidget {
 class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
   final _screenshotController = ScreenshotController();
   final _captionController = TextEditingController();
+  final _picker = ImagePicker();
   OverlayTemplate _template = OverlayTemplate.verticalBar;
+  Uint8List? _selectedMediaBytes;
+  String _selectedMediaLabel = 'Ride card';
   bool _publishing = false;
+  bool _pickingMedia = false;
   String? _status;
 
-  Future<void> _publish(Uint8List bytes, Map<String, dynamic> stats) async {
+  Future<void> _pickMedia(ImageSource source) async {
+    setState(() {
+      _pickingMedia = true;
+      _status = null;
+    });
+    try {
+      final file = await _picker.pickImage(source: source, imageQuality: 85);
+      if (file == null) {
+        return;
+      }
+      final bytes = await file.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _selectedMediaBytes = bytes;
+        _selectedMediaLabel = source == ImageSource.camera
+            ? 'Camera photo selected'
+            : 'Gallery photo selected';
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _status = error.toString());
+    } finally {
+      if (mounted) {
+        setState(() => _pickingMedia = false);
+      }
+    }
+  }
+
+  Future<void> _publish({
+    required Uint8List bytes,
+    required Map<String, dynamic> stats,
+    required String fileExtension,
+    required String contentType,
+  }) async {
     final user = ref.read(authUserProvider).asData?.value;
     if (user == null) return;
     setState(() {
@@ -36,14 +75,14 @@ class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
     try {
       final imageUrl = await ref
           .read(mediaUploadServiceProvider)
-          .uploadOverlay(
+          .uploadPostMedia(
             userId: user.id,
             sessionId: widget.sessionId,
             bytes: bytes,
+            fileExtension: fileExtension,
+            contentType: contentType,
           );
-      await ref
-          .read(feedActionsProvider)
-          .createPost(
+      await ref.read(feedActionsProvider).createPost(
             sessionId: widget.sessionId,
             imageUrl: imageUrl,
             caption: _captionController.text.trim(),
@@ -58,6 +97,30 @@ class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
     } finally {
       if (mounted) setState(() => _publishing = false);
     }
+  }
+
+  Future<void> _publishCurrent(Map<String, dynamic> stats) async {
+    if (_selectedMediaBytes != null) {
+      await _publish(
+        bytes: _selectedMediaBytes!,
+        stats: stats,
+        fileExtension: 'jpg',
+        contentType: 'image/jpeg',
+      );
+      return;
+    }
+
+    final bytes = await _screenshotController.capture();
+    if (bytes == null) {
+      setState(() => _status = 'Failed to render overlay');
+      return;
+    }
+    await _publish(
+      bytes: bytes,
+      stats: stats,
+      fileExtension: 'png',
+      contentType: 'image/png',
+    );
   }
 
   @override
@@ -84,11 +147,67 @@ class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Center(
-                child: Screenshot(
-                  controller: _screenshotController,
-                  child: FlexOverlayCard(session: session, template: _template),
+              if (_selectedMediaBytes != null) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: AspectRatio(
+                    aspectRatio: 3 / 4,
+                    child: Image.memory(
+                      _selectedMediaBytes!,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
+              ] else ...[
+                Center(
+                  child: Screenshot(
+                    controller: _screenshotController,
+                    child: FlexOverlayCard(
+                      session: session,
+                      template: _template,
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              Text(
+                _selectedMediaLabel,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.white70,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _pickingMedia
+                        ? null
+                        : () => _pickMedia(ImageSource.gallery),
+                    icon: const Icon(Icons.photo_library_outlined),
+                    label: const Text('Pick from gallery'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _pickingMedia
+                        ? null
+                        : () => _pickMedia(ImageSource.camera),
+                    icon: const Icon(Icons.photo_camera_outlined),
+                    label: const Text('Take photo'),
+                  ),
+                  TextButton.icon(
+                    onPressed: _pickingMedia
+                        ? null
+                        : () {
+                            setState(() {
+                              _selectedMediaBytes = null;
+                              _selectedMediaLabel = 'Ride card';
+                            });
+                          },
+                    icon: const Icon(Icons.auto_awesome_outlined),
+                    label: const Text('Use ride card'),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               SegmentedButton<OverlayTemplate>(
@@ -107,8 +226,9 @@ class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
                   ),
                 ],
                 selected: {_template},
-                onSelectionChanged: (selection) =>
-                    setState(() => _template = selection.first),
+                onSelectionChanged: _selectedMediaBytes != null
+                    ? null
+                    : (selection) => setState(() => _template = selection.first),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -117,19 +237,11 @@ class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
                   labelText: 'Caption',
                   hintText: 'Evening climb. Strong legs today.',
                 ),
+                maxLines: 3,
               ),
               const SizedBox(height: 14),
               ElevatedButton(
-                onPressed: _publishing
-                    ? null
-                    : () async {
-                        final bytes = await _screenshotController.capture();
-                        if (bytes == null) {
-                          setState(() => _status = 'Failed to render overlay');
-                          return;
-                        }
-                        await _publish(bytes, stats);
-                      },
+                onPressed: _publishing ? null : () => _publishCurrent(stats),
                 child: Text(_publishing ? 'Publishing...' : 'Publish to Feed'),
               ),
               if (_status != null) ...[
@@ -139,7 +251,7 @@ class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
             ],
           );
         },
-        error: (error, _) => Center(child: Text(error.toString())),
+        error: (error, _) => AppErrorState(message: error.toString()),
         loading: () => const Center(child: CircularProgressIndicator()),
       ),
     );

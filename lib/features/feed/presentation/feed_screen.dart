@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:vibetreck/core/routing/app_routes.dart';
 import 'package:vibetreck/features/feed/application/feed_controller.dart';
 import 'package:vibetreck/shared/widgets/app_empty_state.dart';
+import 'package:vibetreck/shared/models/feed_post.dart';
 import 'package:vibetreck/shared/widgets/app_error_state.dart';
 
 class FeedScreen extends ConsumerWidget {
@@ -54,22 +55,11 @@ class FeedScreen extends ConsumerWidget {
                         ),
                         trailing: const Chip(label: Text('Zone Guardian')),
                       ),
-                      Container(
-                        height: 220,
-                        alignment: Alignment.center,
-                        margin: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF181818), Color(0xFF070707)],
-                          ),
-                        ),
-                        child: Text(
-                          '${stats['distanceKm'] ?? '-'} KM',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 34,
-                          ),
+                          child: _PostMedia(post: post, stats: stats),
                         ),
                       ),
                       Padding(
@@ -101,3 +91,60 @@ class FeedScreen extends ConsumerWidget {
     );
   }
 }
+
+class _PostMedia extends StatelessWidget {
+  const _PostMedia({required this.post, required this.stats});
+
+  final FeedPost post;
+  final Map<String, dynamic> stats;
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = post.imageUrl;
+    if (imageUrl.isNotEmpty && imageUrl.startsWith('http')) {
+      return AspectRatio(
+        aspectRatio: 3 / 4,
+        child: Image.network(
+          imageUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _FallbackCard(stats: stats),
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return const SizedBox(
+              height: 220,
+              child: Center(child: CircularProgressIndicator()),
+            );
+          },
+        ),
+      );
+    }
+    return _FallbackCard(stats: stats);
+  }
+}
+
+class _FallbackCard extends StatelessWidget {
+  const _FallbackCard({required this.stats});
+
+  final Map<String, dynamic> stats;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 220,
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF181818), Color(0xFF070707)],
+        ),
+      ),
+      child: Text(
+        '${stats['distanceKm'] ?? '-'} KM',
+        style: const TextStyle(
+          fontWeight: FontWeight.w900,
+          fontSize: 34,
+        ),
+      ),
+    );
+  }
+}
+

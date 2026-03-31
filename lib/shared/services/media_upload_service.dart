@@ -13,10 +13,12 @@ final mediaUploadServiceProvider = Provider<MediaUploadService>((ref) {
 });
 
 abstract class MediaUploadService {
-  Future<String> uploadOverlay({
+  Future<String> uploadPostMedia({
     required String userId,
     required String sessionId,
     required Uint8List bytes,
+    String fileExtension = 'png',
+    String contentType = 'image/png',
   });
 }
 
@@ -25,15 +27,21 @@ class SupabaseMediaUploadService implements MediaUploadService {
   final SupabaseClient _client;
 
   @override
-  Future<String> uploadOverlay({
+  Future<String> uploadPostMedia({
     required String userId,
     required String sessionId,
     required Uint8List bytes,
+    String fileExtension = 'png',
+    String contentType = 'image/png',
   }) async {
     final path =
-        '$userId/$sessionId-${DateTime.now().millisecondsSinceEpoch}.png';
+        '$userId/$sessionId-${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
     try {
-      await _client.storage.from('posts').uploadBinary(path, bytes);
+      await _client.storage.from('posts').uploadBinary(
+        path,
+        bytes,
+        fileOptions: FileOptions(contentType: contentType),
+      );
     } on StorageException catch (error) {
       final message = error.message.toLowerCase();
       if (message.contains('403') ||
@@ -51,11 +59,13 @@ class SupabaseMediaUploadService implements MediaUploadService {
 
 class LocalMediaUploadService implements MediaUploadService {
   @override
-  Future<String> uploadOverlay({
+  Future<String> uploadPostMedia({
     required String userId,
     required String sessionId,
     required Uint8List bytes,
+    String fileExtension = 'png',
+    String contentType = 'image/png',
   }) async {
-    return 'local://$userId/$sessionId.png';
+    return 'local://$userId/$sessionId.$fileExtension';
   }
 }

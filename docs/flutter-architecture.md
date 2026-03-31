@@ -74,7 +74,7 @@ Implemented now:
 - shared API error mapping/logging
 - backend-backed repositories for profile, rides, feed, and zones
 - edit profile screen wired to backend update API
-- public profile screen reachable from the feed
+- public profile screen reachable from the feed`r`n- session summary supports gallery/camera post media selection`r`n- feed renders uploaded post media when available
 
 Deferred to later phases:
 - BLoC/GetX rewrite
@@ -83,4 +83,5 @@ Deferred to later phases:
 - offline DB and sync engine
 - dynamic runtime theming
 - admin UI flows
+
 

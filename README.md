@@ -72,3 +72,22 @@ If env vars are not provided, app runs in local demo mode (mock auth/data).
 flutter analyze
 flutter test
 ```
+
+## Supabase Storage SQL
+Use a public `posts` bucket for post media uploads.
+
+```sql
+insert into storage.buckets (id, name, public)
+values ('posts', 'posts', true)
+on conflict (id) do nothing;
+
+create policy "Authenticated users can upload post media"
+on storage.objects for insert
+to authenticated
+with check (bucket_id = 'posts');
+
+create policy "Public can read post media"
+on storage.objects for select
+to public
+using (bucket_id = 'posts');
+```

@@ -528,3 +528,31 @@ Recommended next implementation order from this checkpoint:
 3. notifications foundation
 4. offline ride sync + background persistence
 5. WebSocket live ride service
+
+## 19. Post Media Selection Slice Implemented On 2026-04-01
+
+The post publishing flow now supports user-selected media in the Flutter app.
+
+Implemented now:
+- optional gallery photo selection on the session summary screen
+- optional camera capture for post media on Android
+- fallback publish path still supports the generated ride card overlay
+- feed now renders uploaded image URLs when available instead of always showing a stat placeholder
+- clearer Supabase Storage 403 error message during publish
+- README now includes Supabase Storage SQL for the `posts` bucket
+
+Validation completed:
+- Flutter analyze passes
+- Flutter tests pass
+
+Current limitations:
+- upload still goes directly to Supabase Storage from Flutter
+- backend-owned media upload API is not implemented yet
+- offline draft media persistence is not implemented yet
+
+Recommended next implementation order from this checkpoint:
+1. move media upload from Flutter/Supabase Storage to backend API
+2. comments + richer feed actions
+3. follow/follower system
+4. notifications foundation
+5. offline ride sync + background persistence
