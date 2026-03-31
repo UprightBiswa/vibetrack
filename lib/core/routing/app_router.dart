@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vibetreck/core/providers/repositories.dart';
+import 'package:vibetreck/core/routing/app_routes.dart';
 import 'package:vibetreck/core/routing/app_scaffold.dart';
 import 'package:vibetreck/features/auth/presentation/auth_screen.dart';
 import 'package:vibetreck/features/auth/presentation/splash_screen.dart';
@@ -14,6 +15,7 @@ import 'package:vibetreck/features/settings/presentation/settings_screen.dart';
 import 'package:vibetreck/features/tracking/presentation/session_summary_screen.dart';
 import 'package:vibetreck/features/tracking/presentation/tracking_screen.dart';
 import 'package:vibetreck/features/zones/presentation/zones_screen.dart';
+import 'package:vibetreck/shared/widgets/app_error_state.dart';
 
 final navigatorKeyProvider = Provider<GlobalKey<NavigatorState>>(
   (ref) => GlobalKey<NavigatorState>(),
@@ -30,67 +32,44 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: navKey,
-    initialLocation: '/',
+    initialLocation: AppRoutes.splash,
     refreshListenable: refreshListenable,
+    errorBuilder: (context, state) => AppErrorState(
+      message: state.error.toString(),
+      onRetry: () => context.go(AppRoutes.home),
+    ),
     redirect: (_, state) {
       final isLoggedIn = authRepository.currentUser() != null;
       final path = state.uri.path;
-      final isAuthPath = path == '/auth';
-      final isRoot = path == '/';
+      final isAuthPath = path == AppRoutes.auth;
+      final isRoot = path == AppRoutes.splash;
       final isPublic = isAuthPath || isRoot;
 
-      if (!isLoggedIn && !isPublic) return '/auth';
-      if (isLoggedIn && (isAuthPath || isRoot)) return '/home';
-      if (!isLoggedIn && isRoot) return '/auth';
+      if (!isLoggedIn && !isPublic) return AppRoutes.auth;
+      if (isLoggedIn && (isAuthPath || isRoot)) return AppRoutes.home;
+      if (!isLoggedIn && isRoot) return AppRoutes.auth;
       return null;
     },
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
-      GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
+      GoRoute(path: AppRoutes.splash, builder: (context, state) => const SplashScreen()),
+      GoRoute(path: AppRoutes.auth, builder: (context, state) => const AuthScreen()),
       ShellRoute(
         builder: (context, state, child) {
           return AppScaffold(
             location: state.uri.path,
-            onTapTab: (index) {
-              const paths = [
-                '/home',
-                '/feed',
-                '/zones',
-                '/profile',
-                '/settings',
-              ];
-              context.go(paths[index]);
-            },
+            onTapTab: (index) => context.go(AppRoutes.shellTabs[index]),
             child: child,
           );
         },
         routes: [
-          GoRoute(
-            path: '/home',
-            builder: (context, state) => const HomeScreen(),
-          ),
-          GoRoute(
-            path: '/feed',
-            builder: (context, state) => const FeedScreen(),
-          ),
-          GoRoute(
-            path: '/zones',
-            builder: (context, state) => const ZonesScreen(),
-          ),
-          GoRoute(
-            path: '/profile',
-            builder: (context, state) => const ProfileScreen(),
-          ),
-          GoRoute(
-            path: '/settings',
-            builder: (context, state) => const SettingsScreen(),
-          ),
+          GoRoute(path: AppRoutes.home, builder: (context, state) => const HomeScreen()),
+          GoRoute(path: AppRoutes.feed, builder: (context, state) => const FeedScreen()),
+          GoRoute(path: AppRoutes.zones, builder: (context, state) => const ZonesScreen()),
+          GoRoute(path: AppRoutes.profile, builder: (context, state) => const ProfileScreen()),
+          GoRoute(path: AppRoutes.settings, builder: (context, state) => const SettingsScreen()),
         ],
       ),
-      GoRoute(
-        path: '/tracking',
-        builder: (context, state) => const TrackingScreen(),
-      ),
+      GoRoute(path: AppRoutes.tracking, builder: (context, state) => const TrackingScreen()),
       GoRoute(
         path: '/summary/:sessionId',
         builder: (context, state) => SessionSummaryScreen(

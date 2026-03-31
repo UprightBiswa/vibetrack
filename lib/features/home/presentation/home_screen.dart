@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:go_router/go_router.dart';
+import 'package:vibetreck/core/routing/app_routes.dart';
 import 'package:vibetreck/core/theme/app_theme.dart';
 import 'package:vibetreck/features/profile/application/profile_controller.dart';
 import 'package:vibetreck/features/tracking/application/tracking_controller.dart';
@@ -61,7 +62,7 @@ class HomeScreen extends ConsumerWidget {
               crossAxisCellCount: 4,
               mainAxisCellCount: 1.15,
               child: ElevatedButton.icon(
-                onPressed: () => context.push('/tracking'),
+                onPressed: () => context.push(AppRoutes.tracking),
                 style: ElevatedButton.styleFrom(
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(24),

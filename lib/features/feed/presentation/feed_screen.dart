@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:vibetreck/features/feed/application/feed_controller.dart';
+import 'package:vibetreck/shared/widgets/app_empty_state.dart';
+import 'package:vibetreck/shared/widgets/app_error_state.dart';
 
 class FeedScreen extends ConsumerWidget {
   const FeedScreen({super.key});
@@ -13,11 +15,16 @@ class FeedScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Flex Feed')),
       body: postsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text(error.toString())),
+        error: (error, _) => AppErrorState(
+          message: error.toString(),
+          onRetry: () => ref.invalidate(feedProvider),
+        ),
         data: (posts) {
           if (posts.isEmpty) {
-            return const Center(
-              child: Text('No posts yet. Complete a session and publish.'),
+            return const AppEmptyState(
+              title: 'No posts yet',
+              message: 'Complete a session and publish your first ride to the feed.',
+              icon: Icons.photo_library_outlined,
             );
           }
           return RefreshIndicator(

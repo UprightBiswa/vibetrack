@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vibetreck/core/logging/app_logger.dart';
 import 'package:vibetreck/core/providers/repositories.dart';
 import 'package:vibetreck/core/routing/app_router.dart';
 import 'package:vibetreck/core/theme/app_theme.dart';
@@ -23,9 +24,17 @@ class _VibeTrackAppState extends ConsumerState<VibeTrackApp> {
         return;
       }
       _bootstrappedUserId = user.id;
-      await ref
-          .read(profileRepositoryProvider)
-          .getOrCreateProfile(userId: user.id, email: user.email);
+      try {
+        await ref
+            .read(profileRepositoryProvider)
+            .getOrCreateProfile(userId: user.id, email: user.email);
+      } catch (error, stackTrace) {
+        AppLogger.error(
+          'Profile bootstrap failed for ${user.id}',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
     });
 
     final router = ref.watch(appRouterProvider);

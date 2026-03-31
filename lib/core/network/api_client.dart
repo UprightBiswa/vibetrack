@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vibetreck/core/config/app_env.dart';
+import 'package:vibetreck/core/logging/app_logger.dart';
 import 'package:vibetreck/core/network/api_exception.dart';
 import 'package:vibetreck/core/network/auth_token_provider.dart';
 import 'package:vibetreck/core/network/network_status_provider.dart';
@@ -40,13 +41,28 @@ final apiClientProvider = Provider<Dio?>((ref) {
         if (token != null && token.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $token';
         }
+
+        AppLogger.info('API request ${options.method} ${options.uri}');
         handler.next(options);
+      },
+      onResponse: (response, handler) {
+        AppLogger.info(
+          'API response ${response.statusCode} ${response.requestOptions.uri}',
+        );
+        handler.next(response);
       },
       onError: (error, handler) {
         final response = error.response;
         final detail = response?.data is Map<String, dynamic>
             ? (response?.data['detail']?.toString() ?? response?.statusMessage)
             : response?.statusMessage;
+
+        AppLogger.error(
+          'API error ${response?.statusCode ?? 'n/a'} ${error.requestOptions.uri}',
+          error: error,
+          stackTrace: error.stackTrace,
+        );
+
         handler.reject(
           DioException(
             requestOptions: error.requestOptions,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vibetreck/core/network/network_status_provider.dart';
+import 'package:vibetreck/core/routing/app_routes.dart';
+import 'package:vibetreck/core/theme/app_theme.dart';
 
 class AppScaffold extends ConsumerWidget {
   const AppScaffold({
@@ -14,18 +16,13 @@ class AppScaffold extends ConsumerWidget {
   final String location;
   final ValueChanged<int> onTapTab;
 
-  static const _tabs = <String>[
-    '/home',
-    '/feed',
-    '/zones',
-    '/profile',
-    '/settings',
-  ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isOnline = ref.watch(isOnlineProvider);
-    final selected = _tabs.indexWhere((path) => location.startsWith(path));
+    final selected = AppRoutes.shellTabs.indexWhere(
+      (path) => location.startsWith(path),
+    );
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -33,11 +30,8 @@ class AppScaffold extends ConsumerWidget {
             if (!isOnline)
               Container(
                 width: double.infinity,
-                color: Colors.redAccent.withValues(alpha: 0.22),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
+                color: AppTheme.secondary.withValues(alpha: 0.18),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 child: const Text(
                   'Offline mode: some features may not sync.',
                   textAlign: TextAlign.center,
