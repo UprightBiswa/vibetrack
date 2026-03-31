@@ -556,3 +556,10 @@ Recommended next implementation order from this checkpoint:
 3. follow/follower system
 4. notifications foundation
 5. offline ride sync + background persistence
+
+## 20. Feed Comments Slice Implemented On 2026-04-01
+- Backend now supports feed post detail lookup.
+- Backend now supports comment listing and comment creation for feed posts.
+- Flutter feed now opens a post detail screen.
+- Flutter users can add comments from the post detail screen.
+- Feed comment counts now have a real backend path instead of static placeholder display.

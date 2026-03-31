@@ -1,11 +1,16 @@
-from uuid import uuid4
+﻿from uuid import uuid4
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import CurrentUser
-from app.modules.feed.models import FeedPost
-from app.modules.feed.schemas import CreateFeedPostRequest, FeedPostResponse
+from app.modules.feed.models import FeedComment, FeedPost
+from app.modules.feed.schemas import (
+    CreateFeedCommentRequest,
+    CreateFeedPostRequest,
+    FeedCommentResponse,
+    FeedPostResponse,
+)
 from app.modules.profiles.models import Profile
 from app.modules.profiles.service import ProfileService
 from app.modules.rides.models import RideSession
@@ -19,6 +24,17 @@ class FeedService:
     async def list_posts(self, limit: int = 50) -> list[FeedPost]:
         result = await self.session.execute(
             select(FeedPost).order_by(FeedPost.created_at.desc()).limit(limit)
+        )
+        return list(result.scalars())
+
+    async def get_post(self, post_id: str) -> FeedPost | None:
+        return await self.session.get(FeedPost, post_id)
+
+    async def list_comments(self, post_id: str) -> list[FeedComment]:
+        result = await self.session.execute(
+            select(FeedComment)
+            .where(FeedComment.post_id == post_id)
+            .order_by(FeedComment.created_at.asc())
         )
         return list(result.scalars())
 
@@ -43,6 +59,30 @@ class FeedService:
         await self.session.refresh(post)
         return post
 
+    async def create_comment(
+        self,
+        post_id: str,
+        user: CurrentUser,
+        payload: CreateFeedCommentRequest,
+    ) -> FeedComment:
+        await self.profile_service.get_or_create_profile(user)
+
+        post = await self.session.get(FeedPost, post_id)
+        if post is None:
+            raise ValueError('Post not found')
+
+        comment = FeedComment(
+            id=str(uuid4()),
+            post_id=post_id,
+            user_id=user.user_id,
+            body=payload.body.strip(),
+        )
+        post.comment_count += 1
+        self.session.add(comment)
+        await self.session.commit()
+        await self.session.refresh(comment)
+        return comment
+
     async def like_post(self, post_id: str) -> FeedPost | None:
         post = await self.session.get(FeedPost, post_id)
         if post is None:
@@ -65,5 +105,17 @@ class FeedService:
             comment_count=post.comment_count,
             created_at=post.created_at,
             updated_at=post.updated_at,
+            username=(profile.username if profile else 'Rider'),
+        )
+
+    async def comment_to_response(self, comment: FeedComment) -> FeedCommentResponse:
+        profile = await self.session.get(Profile, comment.user_id)
+        return FeedCommentResponse(
+            id=comment.id,
+            post_id=comment.post_id,
+            user_id=comment.user_id,
+            body=comment.body,
+            created_at=comment.created_at,
+            updated_at=comment.updated_at,
             username=(profile.username if profile else 'Rider'),
         )

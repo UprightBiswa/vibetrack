@@ -1,4 +1,4 @@
-class AppRoutes {
+﻿class AppRoutes {
   static const splash = '/';
   static const auth = '/auth';
   static const home = '/home';
@@ -8,6 +8,7 @@ class AppRoutes {
   static const editProfile = '/profile/edit';
   static const settings = '/settings';
   static const tracking = '/tracking';
+  static const feedPostPath = '/feed/post/:postId';
 
   static const shellTabs = <String>[
     home,
@@ -19,4 +20,5 @@ class AppRoutes {
 
   static String summary(String sessionId) => '/summary/$sessionId';
   static String publicProfile(String profileId) => '/profile/view/$profileId';
+  static String feedPost(String postId) => '/feed/post/$postId';
 }

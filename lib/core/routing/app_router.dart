@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +8,7 @@ import 'package:vibetreck/core/routing/app_routes.dart';
 import 'package:vibetreck/core/routing/app_scaffold.dart';
 import 'package:vibetreck/features/auth/presentation/auth_screen.dart';
 import 'package:vibetreck/features/auth/presentation/splash_screen.dart';
+import 'package:vibetreck/features/feed/presentation/feed_post_detail_screen.dart';
 import 'package:vibetreck/features/feed/presentation/feed_screen.dart';
 import 'package:vibetreck/features/home/presentation/home_screen.dart';
 import 'package:vibetreck/features/profile/presentation/edit_profile_screen.dart';
@@ -112,6 +113,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const TrackingScreen(),
       ),
       GoRoute(
+        path: AppRoutes.feedPostPath,
+        builder: (context, state) => FeedPostDetailScreen(
+          postId: state.pathParameters['postId'] ?? '',
+        ),
+      ),
+      GoRoute(
         path: '/summary/:sessionId',
         builder: (context, state) => SessionSummaryScreen(
           sessionId: state.pathParameters['sessionId'] ?? '',
@@ -134,3 +141,4 @@ class GoRouterRefreshStream extends ChangeNotifier {
     super.dispose();
   }
 }
+

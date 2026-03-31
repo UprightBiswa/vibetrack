@@ -1,4 +1,4 @@
-from datetime import datetime
+﻿from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -8,6 +8,22 @@ class CreateFeedPostRequest(BaseModel):
     caption: str = Field(default='', max_length=2000)
     image_url: str = Field(default='', max_length=512)
     stats_json: dict = Field(default_factory=dict)
+
+
+class CreateFeedCommentRequest(BaseModel):
+    body: str = Field(min_length=1, max_length=1000)
+
+
+class FeedCommentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    post_id: str
+    user_id: str
+    body: str
+    created_at: datetime
+    updated_at: datetime
+    username: str
 
 
 class FeedPostResponse(BaseModel):

@@ -85,3 +85,9 @@ Deferred to later phases:
 - admin UI flows
 
 
+
+## Latest Checkpoint
+- Added `FeedPostDetailScreen` for post-level social interaction.
+- Added backend-backed comments retrieval and comment creation.
+- Feed repository now supports `fetchPost`, `fetchComments`, and `addComment`.
+- This keeps the app on the current Riverpod + repository pattern without introducing another state layer.

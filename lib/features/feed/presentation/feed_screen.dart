@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:vibetreck/core/routing/app_routes.dart';
 import 'package:vibetreck/features/feed/application/feed_controller.dart';
-import 'package:vibetreck/shared/widgets/app_empty_state.dart';
 import 'package:vibetreck/shared/models/feed_post.dart';
+import 'package:vibetreck/shared/widgets/app_empty_state.dart';
 import 'package:vibetreck/shared/widgets/app_error_state.dart';
 
 class FeedScreen extends ConsumerWidget {
@@ -55,11 +55,15 @@ class FeedScreen extends ConsumerWidget {
                         ),
                         trailing: const Chip(label: Text('Zone Guardian')),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: _PostMedia(post: post, stats: stats),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () => context.push(AppRoutes.feedPost(post.id)),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: _PostMedia(post: post, stats: stats),
+                          ),
                         ),
                       ),
                       Padding(
@@ -69,14 +73,15 @@ class FeedScreen extends ConsumerWidget {
                       Row(
                         children: [
                           IconButton(
-                            onPressed: () =>
-                                ref.read(feedActionsProvider).like(post.id),
+                            onPressed: () => ref.read(feedActionsProvider).like(post.id),
                             icon: const Icon(Icons.favorite_border),
                           ),
                           Text('${post.likeCount}'),
                           const SizedBox(width: 12),
-                          const Icon(Icons.chat_bubble_outline, size: 18),
-                          const SizedBox(width: 4),
+                          IconButton(
+                            onPressed: () => context.push(AppRoutes.feedPost(post.id)),
+                            icon: const Icon(Icons.chat_bubble_outline),
+                          ),
                           Text('${post.commentCount}'),
                         ],
                       ),
@@ -92,8 +97,8 @@ class FeedScreen extends ConsumerWidget {
   }
 }
 
-class _PostMedia extends StatelessWidget {
-  const _PostMedia({required this.post, required this.stats});
+class PostMedia extends StatelessWidget {
+  const PostMedia({super.key, required this.post, required this.stats});
 
   final FeedPost post;
   final Map<String, dynamic> stats;
@@ -107,7 +112,7 @@ class _PostMedia extends StatelessWidget {
         child: Image.network(
           imageUrl,
           fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _FallbackCard(stats: stats),
+          errorBuilder: (context, error, stackTrace) => FallbackCard(stats: stats),
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;
             return const SizedBox(
@@ -118,12 +123,16 @@ class _PostMedia extends StatelessWidget {
         ),
       );
     }
-    return _FallbackCard(stats: stats);
+    return FallbackCard(stats: stats);
   }
 }
 
-class _FallbackCard extends StatelessWidget {
-  const _FallbackCard({required this.stats});
+class _PostMedia extends PostMedia {
+  const _PostMedia({required super.post, required super.stats});
+}
+
+class FallbackCard extends StatelessWidget {
+  const FallbackCard({super.key, required this.stats});
 
   final Map<String, dynamic> stats;
 
@@ -147,4 +156,3 @@ class _FallbackCard extends StatelessWidget {
     );
   }
 }
-
