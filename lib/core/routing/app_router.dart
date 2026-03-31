@@ -44,12 +44,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = authRepository.currentUser() != null;
       final path = state.uri.path;
       final isAuthPath = path == AppRoutes.auth;
-      final isRoot = path == AppRoutes.splash;
-      final isPublic = isAuthPath || isRoot;
+      final isSplashPath = path == AppRoutes.splash;
 
-      if (!isLoggedIn && !isPublic) return AppRoutes.auth;
-      if (isLoggedIn && (isAuthPath || isRoot)) return AppRoutes.home;
-      if (!isLoggedIn && isRoot) return AppRoutes.auth;
+      if (isSplashPath) {
+        return null;
+      }
+      if (!isLoggedIn && !isAuthPath) {
+        return AppRoutes.auth;
+      }
+      if (isLoggedIn && isAuthPath) {
+        return AppRoutes.home;
+      }
       return null;
     },
     routes: [

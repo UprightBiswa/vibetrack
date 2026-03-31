@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vibetreck/core/config/app_env.dart';
 import 'package:vibetreck/features/auth/application/auth_controller.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
@@ -66,12 +67,29 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final env = ref.watch(appEnvProvider);
+    final authConfigured = env.hasSupabase;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Sign in')),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            if (!authConfigured)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'Supabase auth is not configured for this build. Run the app with env.production.json.',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
             TextField(
               controller: _emailController,
               decoration: const InputDecoration(labelText: 'Email'),
@@ -97,7 +115,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _loading ? null : _submit,
+                onPressed: _loading || !authConfigured ? null : _submit,
                 child: Text(
                   _loading
                       ? 'Please wait...'
@@ -109,7 +127,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: _loading
+                onPressed: _loading || !authConfigured
                     ? null
                     : () async {
                         setState(() => _loading = true);
@@ -129,7 +147,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               ),
             ),
             TextButton(
-              onPressed: () => setState(() => _isSignUp = !_isSignUp),
+              onPressed: authConfigured
+                  ? () => setState(() => _isSignUp = !_isSignUp)
+                  : null,
               child: Text(
                 _isSignUp
                     ? 'Already have account? Sign in'

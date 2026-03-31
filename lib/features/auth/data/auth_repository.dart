@@ -95,27 +95,28 @@ class SupabaseAuthRepository implements AuthRepository {
 }
 
 class LocalAuthRepository implements AuthRepository {
+  static const _configError =
+      'Authentication is not configured. Run the app with Supabase environment values.';
+
   final StreamController<AppUser?> _controller =
       StreamController<AppUser?>.broadcast();
-  AppUser? _user;
 
   LocalAuthRepository() {
-    _controller.add(_user);
+    _controller.add(null);
   }
 
   @override
   Stream<AppUser?> authStateChanges() => _controller.stream;
 
   @override
-  AppUser? currentUser() => _user;
+  AppUser? currentUser() => null;
 
   @override
   Future<void> signInWithEmail({
     required String email,
     required String password,
   }) async {
-    _user = AppUser(id: 'demo-$email', email: email, isGuest: false);
-    _controller.add(_user);
+    throw Exception(_configError);
   }
 
   @override
@@ -123,23 +124,14 @@ class LocalAuthRepository implements AuthRepository {
     required String email,
     required String password,
   }) async {
-    _user = AppUser(id: 'demo-$email', email: email, isGuest: false);
-    _controller.add(_user);
+    throw Exception(_configError);
   }
 
   @override
   Future<void> signInWithGoogle() async {
-    _user = const AppUser(
-      id: 'demo-google-user',
-      email: 'google-user@vibetrack.local',
-      isGuest: false,
-    );
-    _controller.add(_user);
+    throw Exception(_configError);
   }
 
   @override
-  Future<void> signOut() async {
-    _user = null;
-    _controller.add(_user);
-  }
+  Future<void> signOut() async {}
 }
