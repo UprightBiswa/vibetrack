@@ -1,96 +1,171 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:vibetreck/core/theme/theme_controller.dart';
 
 class AppTheme {
-  static const Color background = Color(0xFF000000);
-  static const Color surface = Color(0xFF141414);
-  static const Color primary = Color(0xFFCCFF00);
-  static const Color secondary = Color(0xFF8B5CF6);
-  static const Color border = Color(0xFF262626);
+  static const Color backgroundDark = Color(0xFF0A0A0D);
+  static const Color surfaceDark = Color(0xFF15171C);
+  static const Color backgroundLight = Color(0xFFF6F4EF);
+  static const Color surfaceLight = Color(0xFFFFFFFF);
+  static const Color borderDark = Color(0xFF2B3038);
+  static const Color borderLight = Color(0xFFD7D2C6);
 
-  static ThemeData get darkTheme {
-    const colorScheme = ColorScheme.dark(
-      primary: primary,
-      secondary: secondary,
-      surface: surface,
+  // Compatibility aliases for existing widgets that still read the old theme API.
+  static const Color background = backgroundDark;
+  static const Color surface = surfaceDark;
+  static const Color border = borderDark;
+  static const Color primary = Color(0xFFD6FF3F);
+  static const Color secondary = Color(0xFF38E0C4);
+
+  static Color accentFor(AppAccentColor accent) {
+    switch (accent) {
+      case AppAccentColor.lime:
+        return const Color(0xFFD6FF3F);
+      case AppAccentColor.teal:
+        return const Color(0xFF38E0C4);
+      case AppAccentColor.coral:
+        return const Color(0xFFFF7A59);
+      case AppAccentColor.sky:
+        return const Color(0xFF52B6FF);
+    }
+  }
+
+  static ThemeData lightTheme({
+    required AppAccentColor accent,
+    ColorScheme? dynamicScheme,
+  }) {
+    return _buildTheme(
+      brightness: Brightness.light,
+      accent: accentFor(accent),
+      dynamicScheme: dynamicScheme,
     );
+  }
+
+  static ThemeData darkTheme({
+    required AppAccentColor accent,
+    ColorScheme? dynamicScheme,
+  }) {
+    return _buildTheme(
+      brightness: Brightness.dark,
+      accent: accentFor(accent),
+      dynamicScheme: dynamicScheme,
+    );
+  }
+
+  static ThemeData _buildTheme({
+    required Brightness brightness,
+    required Color accent,
+    ColorScheme? dynamicScheme,
+  }) {
+    final isDark = brightness == Brightness.dark;
+    final scheme = dynamicScheme ??
+        ColorScheme.fromSeed(
+          seedColor: accent,
+          brightness: brightness,
+          surface: isDark ? surfaceDark : surfaceLight,
+        );
 
     final base = ThemeData(
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: background,
-      colorScheme: colorScheme,
+      brightness: brightness,
+      scaffoldBackgroundColor: isDark ? backgroundDark : backgroundLight,
+      colorScheme: scheme,
       useMaterial3: true,
     );
 
+    final bodyText = GoogleFonts.plusJakartaSansTextTheme(base.textTheme);
+    final displayFont = GoogleFonts.spaceGroteskTextTheme(bodyText);
+
     return base.copyWith(
-      appBarTheme: const AppBarTheme(
-        backgroundColor: background,
-        elevation: 0,
-        centerTitle: false,
-      ),
-      textTheme: base.textTheme.copyWith(
-        headlineSmall: base.textTheme.headlineSmall?.copyWith(
-          fontWeight: FontWeight.w800,
-          letterSpacing: -0.4,
+      textTheme: displayFont.copyWith(
+        headlineSmall: displayFont.headlineSmall?.copyWith(
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.8,
         ),
-        titleMedium: base.textTheme.titleMedium?.copyWith(
+        titleMedium: displayFont.titleMedium?.copyWith(
           fontWeight: FontWeight.w700,
         ),
-        bodyMedium: base.textTheme.bodyMedium?.copyWith(height: 1.35),
+        bodyMedium: displayFont.bodyMedium?.copyWith(height: 1.35),
+      ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
+        titleTextStyle: GoogleFonts.spaceGrotesk(
+          fontSize: 22,
+          fontWeight: FontWeight.w700,
+          color: scheme.onSurface,
+        ),
       ),
       cardTheme: CardThemeData(
-        color: surface,
+        color: isDark ? surfaceDark : surfaceLight,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        elevation: isDark ? 0 : 1,
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: surface,
-        selectedColor: secondary.withValues(alpha: 0.24),
+        backgroundColor: isDark ? surfaceDark : surfaceLight,
+        selectedColor: scheme.primary.withValues(alpha: 0.18),
+        side: BorderSide(
+          color: isDark ? borderDark : borderLight,
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surface,
+        fillColor: isDark ? surfaceDark : surfaceLight,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: border),
+          borderSide: BorderSide(color: isDark ? borderDark : borderLight),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: border),
+          borderSide: BorderSide(color: isDark ? borderDark : borderLight),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: primary),
+          borderSide: BorderSide(color: scheme.primary, width: 1.4),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primary,
-          foregroundColor: Colors.black,
+          backgroundColor: scheme.primary,
+          foregroundColor: scheme.onPrimary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+          textStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          side: BorderSide(color: isDark ? borderDark : borderLight),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: surface,
-        indicatorColor: primary.withValues(alpha: 0.18),
+        backgroundColor: isDark ? surfaceDark : surfaceLight,
+        indicatorColor: scheme.primary.withValues(alpha: 0.18),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
-          return TextStyle(
-            color: selected ? primary : Colors.white70,
+          return GoogleFonts.plusJakartaSans(
+            color: selected ? scheme.primary : scheme.onSurface.withValues(alpha: 0.72),
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
           );
         }),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: surface,
-        contentTextStyle: const TextStyle(color: Colors.white),
+        backgroundColor: isDark ? surfaceDark : surfaceLight,
+        contentTextStyle: GoogleFonts.plusJakartaSans(
+          color: scheme.onSurface,
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         behavior: SnackBarBehavior.floating,
       ),
-      dividerColor: border,
+      dividerColor: isDark ? borderDark : borderLight,
     );
   }
 }

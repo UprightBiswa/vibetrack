@@ -97,3 +97,9 @@ Deferred to later phases:
 - Added streak display on home/profile sourced from backend ride history.
 - Added backend-backed one-like-per-user feed state.
 - Added a dedicated share card preview on post detail; native share now depends on `share_plus` and `path_provider`.
+
+## Latest Checkpoint
+- Settings has been converted from a debug-log surface into a production-facing account and theme screen.
+- Theme preferences now support system/light/dark mode, dynamic color, and fallback accent color selection.
+- Typography now uses Google Fonts instead of the default Material stack.
+- Sign-out now uses an explicit confirmation dialog from Settings.

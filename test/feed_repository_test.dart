@@ -15,6 +15,7 @@ void main() {
       likeCount: 1,
       commentCount: 0,
       username: 'tester',
+      likedByMe: false,
     );
     final repo = LocalFeedRepository(seedPosts: [seed]);
     final posts = await repo.fetchPosts();
@@ -38,6 +39,7 @@ void main() {
       likeCount: 0,
       commentCount: 0,
       username: 'tester',
+      likedByMe: false
     );
     await repo.createPost(post);
     final posts = await repo.fetchPosts();
