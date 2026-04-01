@@ -72,28 +72,50 @@ class AppScaffold extends StatelessWidget {
         ),
         bottomNavigationBar: Padding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: NavigationBar(
-              selectedIndex: currentIndex,
-              onDestinationSelected: onSelectTab,
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.dashboard_rounded),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.82),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  blurRadius: 30,
+                  offset: const Offset(0, -6),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _NavItem(
+                  icon: Icons.home_rounded,
                   label: 'Home',
+                  selected: currentIndex == 0,
+                  onTap: () => onSelectTab(0),
                 ),
-                NavigationDestination(
-                  icon: Icon(Icons.dynamic_feed_rounded),
+                _NavItem(
+                  icon: Icons.map_rounded,
+                  label: 'Zones',
+                  selected: currentIndex == 1,
+                  onTap: () => onSelectTab(1),
+                ),
+                _CenterNavAction(
+                  selected: currentIndex == 2,
+                  onTap: () => onSelectTab(2),
+                ),
+                _NavItem(
+                  icon: Icons.dynamic_feed_rounded,
                   label: 'Feed',
+                  selected: currentIndex == 3,
+                  onTap: () => onSelectTab(3),
                 ),
-                NavigationDestination(icon: Icon(Icons.map_rounded), label: 'Zones'),
-                NavigationDestination(
-                  icon: Icon(Icons.person_rounded),
+                _NavItem(
+                  icon: Icons.person_rounded,
                   label: 'Profile',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.settings_rounded),
-                  label: 'Settings',
+                  selected: currentIndex == 4,
+                  onTap: () => onSelectTab(4),
                 ),
               ],
             ),
@@ -119,6 +141,85 @@ class AppScaffold extends StatelessWidget {
             child: const Text('Exit'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? AppTheme.primary : Colors.white54;
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w800,
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CenterNavAction extends StatelessWidget {
+  const _CenterNavAction({required this.selected, required this.onTap});
+
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.translate(
+      offset: const Offset(0, -18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Container(
+          width: 62,
+          height: 62,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const LinearGradient(
+              colors: [AppTheme.primary, Color(0xFFAED600)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primary.withValues(alpha: selected ? 0.4 : 0.28),
+                blurRadius: 26,
+                spreadRadius: 2,
+              ),
+            ],
+            border: Border.all(color: Colors.black.withValues(alpha: 0.65), width: 4),
+          ),
+          child: const Icon(Icons.bolt_rounded, color: Colors.black, size: 30),
+        ),
       ),
     );
   }

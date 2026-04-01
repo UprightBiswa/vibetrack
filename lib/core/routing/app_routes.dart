@@ -14,10 +14,10 @@ class AppRoutes {
 
   static const shellTabs = <String>[
     home,
-    feed,
     zones,
+    tracking,
+    feed,
     profile,
-    settings,
   ];
 
   static String summary(String sessionId) => '/summary/$sessionId';

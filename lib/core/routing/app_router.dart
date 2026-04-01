@@ -74,7 +74,7 @@ GoRouter createAppRouter({
       GoRoute(
         path: AppRoutes.feed,
         builder: (context, state) => AppScaffold(
-          currentIndex: 1,
+          currentIndex: 3,
           onSelectTab: (index) => context.go(AppRoutes.shellTabs[index]),
           child: const FeedScreen(),
         ),
@@ -82,26 +82,30 @@ GoRouter createAppRouter({
       GoRoute(
         path: AppRoutes.zones,
         builder: (context, state) => AppScaffold(
-          currentIndex: 2,
+          currentIndex: 1,
           onSelectTab: (index) => context.go(AppRoutes.shellTabs[index]),
           child: const ZonesScreen(),
         ),
       ),
       GoRoute(
+        path: AppRoutes.tracking,
+        builder: (context, state) => AppScaffold(
+          currentIndex: 2,
+          onSelectTab: (index) => context.go(AppRoutes.shellTabs[index]),
+          child: const TrackingScreen(),
+        ),
+      ),
+      GoRoute(
         path: AppRoutes.profile,
         builder: (context, state) => AppScaffold(
-          currentIndex: 3,
+          currentIndex: 4,
           onSelectTab: (index) => context.go(AppRoutes.shellTabs[index]),
           child: const ProfileScreen(),
         ),
       ),
       GoRoute(
         path: AppRoutes.settings,
-        builder: (context, state) => AppScaffold(
-          currentIndex: 4,
-          onSelectTab: (index) => context.go(AppRoutes.shellTabs[index]),
-          child: const SettingsScreen(),
-        ),
+        builder: (context, state) => const SettingsScreen(),
       ),
       GoRoute(
         path: AppRoutes.editProfile,
@@ -120,10 +124,6 @@ GoRouter createAppRouter({
         builder: (context, state) => PublicProfileScreen(
           profileId: state.pathParameters['profileId'] ?? '',
         ),
-      ),
-      GoRoute(
-        path: AppRoutes.tracking,
-        builder: (context, state) => const TrackingScreen(),
       ),
       GoRoute(
         path: AppRoutes.feedPostPath,

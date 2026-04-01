@@ -27,6 +27,10 @@ class ProfileScreen extends StatelessWidget {
         title: const Text('Profile'),
         actions: [
           IconButton(
+            onPressed: () => context.push(AppRoutes.settings),
+            icon: const Icon(Icons.tune_rounded),
+          ),
+          IconButton(
             onPressed: () => context.push(AppRoutes.editProfile),
             icon: const Icon(Icons.edit_rounded),
           ),
