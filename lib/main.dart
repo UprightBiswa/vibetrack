@@ -1,11 +1,28 @@
 import 'dart:ui';
 
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibetreck/app.dart';
 import 'package:vibetreck/core/config/app_env.dart';
 import 'package:vibetreck/core/logging/app_logger.dart';
+import 'package:vibetreck/firebase_options.dart';
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (_) {
+    // Background isolate may already have Firebase initialized.
+  }
+  AppLogger.info(
+    'Background FCM message received: ${message.messageId ?? 'unknown'}',
+  );
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +53,20 @@ Future<void> main() async {
   if (env.isProduction && !env.hasRequiredProductionKeys) {
     final missing = env.missingProductionKeys.join(', ');
     throw FlutterError('Missing required production configuration: $missing');
+  }
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    AppLogger.info('Firebase initialized successfully');
+  } catch (error, stackTrace) {
+    AppLogger.warning(
+      'Firebase initialization skipped or failed',
+      error: error,
+      stackTrace: stackTrace,
+    );
   }
 
   if (env.hasSupabase) {

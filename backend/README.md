@@ -108,3 +108,19 @@ Routes below still exist as scaffold only:
 5. Admin auth and audit logs
 6. WebSocket live ride service
 7. Flutter app migration from direct Supabase repositories to backend API adapters
+
+## Firebase FCM Setup
+
+To enable push notifications:
+1. Place your Android Firebase config at `android/app/google-services.json`
+2. Place your Firebase Admin service account JSON at `backend/secrets/firebase-service-account.json`
+3. Add to `backend/.env`:
+```env
+GOOGLE_APPLICATION_CREDENTIALS=backend/secrets/firebase-service-account.json
+```
+
+Backend routes:
+- `POST /api/v1/notifications/device-token`
+- `POST /api/v1/notifications/test`
+
+The backend now stores FCM device tokens in Neon and can attempt test push delivery when Firebase Admin credentials are present.

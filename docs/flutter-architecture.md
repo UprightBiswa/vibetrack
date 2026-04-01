@@ -103,3 +103,9 @@ Deferred to later phases:
 - Theme preferences now support system/light/dark mode, dynamic color, and fallback accent color selection.
 - Typography now uses Google Fonts instead of the default Material stack.
 - Sign-out now uses an explicit confirmation dialog from Settings.
+
+## Latest Checkpoint
+- Added Firebase Core + Firebase Messaging app scaffolding.
+- Added Android Firebase Gradle plugin wiring.
+- Added FCM token registration flow from Flutter to backend.
+- Added backend device token persistence plus test-notification endpoint.

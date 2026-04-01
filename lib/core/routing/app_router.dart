@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +11,7 @@ import 'package:vibetreck/features/auth/presentation/splash_screen.dart';
 import 'package:vibetreck/features/feed/presentation/feed_post_detail_screen.dart';
 import 'package:vibetreck/features/feed/presentation/feed_screen.dart';
 import 'package:vibetreck/features/home/presentation/home_screen.dart';
+import 'package:vibetreck/features/notifications/presentation/notifications_screen.dart';
 import 'package:vibetreck/features/profile/presentation/edit_profile_screen.dart';
 import 'package:vibetreck/features/profile/presentation/leaderboard_screen.dart';
 import 'package:vibetreck/features/profile/presentation/profile_screen.dart';
@@ -102,6 +103,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.editProfile,
         builder: (context, state) => const EditProfileScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.notifications,
+        builder: (context, state) => const NotificationsScreen(),
       ),
       GoRoute(
         path: AppRoutes.leaderboard,

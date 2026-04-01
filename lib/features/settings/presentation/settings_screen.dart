@@ -1,10 +1,12 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vibetreck/core/config/app_env.dart';
+import 'package:vibetreck/core/notifications/push_notifications_service.dart';
 import 'package:vibetreck/core/routing/app_routes.dart';
 import 'package:vibetreck/core/theme/theme_controller.dart';
 import 'package:vibetreck/features/auth/application/auth_controller.dart';
+import 'package:vibetreck/features/notifications/application/notification_controller.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -15,6 +17,7 @@ class SettingsScreen extends ConsumerWidget {
     final user = ref.watch(authUserProvider).asData?.value;
     final themeSettings = ref.watch(themeControllerProvider);
     final themeActions = ref.read(themeControllerProvider.notifier);
+    final unreadNotifications = ref.watch(unreadNotificationCountProvider).asData?.value ?? 0;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -33,7 +36,7 @@ class SettingsScreen extends ConsumerWidget {
                   ListTile(
                     leading: const Icon(Icons.logout_rounded),
                     title: const Text('Sign out'),
-                    subtitle: const Text('You will need to sign in again to access protected features.'),
+                    subtitle: const Text('This device will stop receiving account notifications until you sign in again.'),
                     onTap: () => _confirmSignOut(context, ref),
                   )
                 else
@@ -41,6 +44,45 @@ class SettingsScreen extends ConsumerWidget {
                     leading: const Icon(Icons.login_rounded),
                     title: const Text('Go to sign in'),
                     onTap: () => context.go(AppRoutes.auth),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.notifications_active_rounded),
+                  title: const Text('Notifications'),
+                  subtitle: Text(
+                    unreadNotifications > 0
+                        ? '$unreadNotifications unread notification(s)'
+                        : 'View your notification history and delivery status.',
+                  ),
+                  trailing: unreadNotifications > 0
+                      ? CircleAvatar(
+                          radius: 12,
+                          child: Text(
+                            '$unreadNotifications',
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                        )
+                      : const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.go(AppRoutes.notifications),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.developer_mode_rounded),
+                  title: const Text('Backend API'),
+                  subtitle: Text(
+                    env.hasBackendApi ? env.effectiveBackendApiUrl : 'Not configured',
+                  ),
+                ),
+                if (env.backendSetupHint != null)
+                  ListTile(
+                    leading: const Icon(Icons.info_outline_rounded),
+                    title: const Text('Backend setup hint'),
+                    subtitle: Text(env.backendSetupHint!),
                   ),
               ],
             ),
@@ -135,36 +177,6 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 12),
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.notifications_active_rounded),
-                  title: const Text('Notifications'),
-                  subtitle: const Text('Notification controls will expand as push delivery is added.'),
-                ),
-                const ListTile(
-                  leading: Icon(Icons.privacy_tip_rounded),
-                  title: Text('Privacy'),
-                  subtitle: Text('Protected APIs, least privilege access, and backend-owned app data.'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.developer_mode_rounded),
-                  title: const Text('Backend API'),
-                  subtitle: Text(
-                    env.hasBackendApi ? env.effectiveBackendApiUrl : 'Not configured',
-                  ),
-                ),
-                if (env.backendSetupHint != null)
-                  ListTile(
-                    leading: const Icon(Icons.info_outline_rounded),
-                    title: const Text('Backend setup hint'),
-                    subtitle: Text(env.backendSetupHint!),
-                  ),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -175,7 +187,7 @@ class SettingsScreen extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Sign out?'),
-        content: const Text('You will be returned to the login screen.'),
+        content: const Text('You will be returned to the login screen and this device token will be removed from your account.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -191,7 +203,9 @@ class SettingsScreen extends ConsumerWidget {
 
     if (confirmed != true) return;
 
+    await ref.read(pushNotificationsServiceProvider).unregisterCurrentDevice();
     await ref.read(authActionsProvider).signOut();
+    ref.read(notificationActionsProvider).refresh();
     if (context.mounted) {
       context.go(AppRoutes.auth);
     }

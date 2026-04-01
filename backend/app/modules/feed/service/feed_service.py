@@ -1,4 +1,4 @@
-﻿from uuid import uuid4
+from uuid import uuid4
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +11,7 @@ from app.modules.feed.schemas import (
     FeedCommentResponse,
     FeedPostResponse,
 )
+from app.modules.notifications.service import NotificationService
 from app.modules.profiles.models import Profile
 from app.modules.profiles.service import ProfileService
 from app.modules.rides.models import RideSession
@@ -20,6 +21,7 @@ class FeedService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.profile_service = ProfileService(session)
+        self.notification_service = NotificationService(session)
 
     async def list_posts(self, limit: int = 50) -> list[FeedPost]:
         result = await self.session.execute(
@@ -74,26 +76,43 @@ class FeedService:
         user: CurrentUser,
         payload: CreateFeedCommentRequest,
     ) -> FeedComment:
-        await self.profile_service.get_or_create_profile(user)
+        actor_profile = await self.profile_service.get_or_create_profile(user)
 
         post = await self.session.get(FeedPost, post_id)
         if post is None:
             raise ValueError('Post not found')
 
+        comment_body = payload.body.strip()
         comment = FeedComment(
             id=str(uuid4()),
             post_id=post_id,
             user_id=user.user_id,
-            body=payload.body.strip(),
+            body=comment_body,
         )
         post.comment_count += 1
         self.session.add(comment)
         await self.session.commit()
         await self.session.refresh(comment)
+
+        if post.user_id != user.user_id:
+            actor_name = actor_profile.username or (user.email or 'Someone').split('@')[0]
+            await self.notification_service.create_user_notification(
+                post.user_id,
+                type='post_comment',
+                title=f'{actor_name} commented on your post',
+                body=(comment_body[:120] if comment_body else 'New comment on your ride'),
+                route=f'/feed/post/{post.id}',
+                entity_id=post.id,
+                payload_json={
+                    'post_id': post.id,
+                    'actor_user_id': user.user_id,
+                    'actor_username': actor_name,
+                },
+            )
         return comment
 
     async def toggle_like(self, post_id: str, user: CurrentUser) -> FeedPost | None:
-        await self.profile_service.get_or_create_profile(user)
+        actor_profile = await self.profile_service.get_or_create_profile(user)
         post = await self.session.get(FeedPost, post_id)
         if post is None:
             return None
@@ -105,6 +124,7 @@ class FeedService:
             )
         )
         existing_like = result.scalar_one_or_none()
+        created_like = False
 
         if existing_like is None:
             like = FeedPostLike(
@@ -114,12 +134,29 @@ class FeedService:
             )
             self.session.add(like)
             post.like_count += 1
+            created_like = True
         else:
             await self.session.delete(existing_like)
             post.like_count = max(0, post.like_count - 1)
 
         await self.session.commit()
         await self.session.refresh(post)
+
+        if created_like and post.user_id != user.user_id:
+            actor_name = actor_profile.username or (user.email or 'Someone').split('@')[0]
+            await self.notification_service.create_user_notification(
+                post.user_id,
+                type='post_like',
+                title=f'{actor_name} liked your post',
+                body='Your activity is getting attention.',
+                route=f'/feed/post/{post.id}',
+                entity_id=post.id,
+                payload_json={
+                    'post_id': post.id,
+                    'actor_user_id': user.user_id,
+                    'actor_username': actor_name,
+                },
+            )
         return post
 
     async def to_response(

@@ -32,6 +32,10 @@ class Settings(BaseSettings):
         alias='SUPABASE_JWKS_URL',
     )
     superadmin_emails: str = Field(default='', alias='SUPERADMIN_EMAILS')
+    google_application_credentials: str | None = Field(
+        default=None,
+        alias='GOOGLE_APPLICATION_CREDENTIALS',
+    )
     fcm_project_id: str | None = Field(default=None, alias='FCM_PROJECT_ID')
     fcm_client_email: str | None = Field(default=None, alias='FCM_CLIENT_EMAIL')
     fcm_private_key: str | None = Field(default=None, alias='FCM_PRIVATE_KEY')

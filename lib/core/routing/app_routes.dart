@@ -1,4 +1,4 @@
-﻿class AppRoutes {
+class AppRoutes {
   static const splash = '/';
   static const auth = '/auth';
   static const home = '/home';
@@ -7,6 +7,7 @@
   static const profile = '/profile';
   static const editProfile = '/profile/edit';
   static const settings = '/settings';
+  static const notifications = '/notifications';
   static const tracking = '/tracking';
   static const feedPostPath = '/feed/post/:postId';
   static const leaderboard = '/leaderboard';

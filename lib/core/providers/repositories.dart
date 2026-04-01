@@ -4,6 +4,7 @@ import 'package:vibetreck/core/config/app_env.dart';
 import 'package:vibetreck/core/network/api_client.dart';
 import 'package:vibetreck/features/auth/data/auth_repository.dart';
 import 'package:vibetreck/features/feed/data/feed_repository.dart';
+import 'package:vibetreck/features/notifications/data/notification_repository.dart';
 import 'package:vibetreck/features/profile/data/profile_repository.dart';
 import 'package:vibetreck/features/tracking/data/session_repository.dart';
 import 'package:vibetreck/features/zones/data/zone_repository.dart';
@@ -75,4 +76,12 @@ final zoneRepositoryProvider = Provider<ZoneRepository>((ref) {
     return LocalZoneRepository();
   }
   return SupabaseZoneRepository(client);
+});
+
+final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
+  final apiClient = ref.watch(apiClientProvider);
+  if (apiClient != null) {
+    return ApiNotificationRepository(apiClient);
+  }
+  return LocalNotificationRepository();
 });

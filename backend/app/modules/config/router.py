@@ -20,5 +20,5 @@ async def get_bootstrap_config() -> BootstrapConfigResponse:
         app_name=settings.project_name,
         api_base_path=settings.api_v1_prefix,
         supports_live_tracking=False,
-        supports_notifications=False,
+        supports_notifications=True,
     )
