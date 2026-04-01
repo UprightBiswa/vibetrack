@@ -2,13 +2,13 @@ import 'dart:ui';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter/widgets.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibetreck/app.dart';
 import 'package:vibetreck/core/bloc/app_bloc_observer.dart';
 import 'package:vibetreck/core/config/app_env.dart';
+import 'package:vibetreck/core/di/app_services.dart';
 import 'package:vibetreck/core/logging/app_logger.dart';
 import 'package:vibetreck/firebase_options.dart';
 
@@ -18,9 +18,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-  } catch (_) {
-    // Background isolate may already have Firebase initialized.
-  }
+  } catch (_) {}
   AppLogger.info(
     'Background FCM message received: ${message.messageId ?? 'unknown'}',
   );
@@ -86,10 +84,6 @@ Future<void> main() async {
     AppLogger.warning('Supabase not initialized because env values are missing');
   }
 
-  runApp(
-    ProviderScope(
-      overrides: [appEnvProvider.overrideWithValue(env)],
-      child: const VibeTrackApp(),
-    ),
-  );
+  final services = AppServices.fromEnv(env);
+  runApp(VibeTrackApp(services: services));
 }

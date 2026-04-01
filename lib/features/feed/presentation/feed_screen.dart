@@ -1,106 +1,118 @@
-﻿import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:vibetreck/core/bloc/view_status.dart';
 import 'package:vibetreck/core/routing/app_routes.dart';
 import 'package:vibetreck/features/feed/application/feed_controller.dart';
 import 'package:vibetreck/shared/models/feed_post.dart';
 import 'package:vibetreck/shared/widgets/app_empty_state.dart';
 import 'package:vibetreck/shared/widgets/app_error_state.dart';
 
-class FeedScreen extends ConsumerWidget {
+class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final postsAsync = ref.watch(feedProvider);
+  State<FeedScreen> createState() => _FeedScreenState();
+}
+
+class _FeedScreenState extends State<FeedScreen> {
+  @override
+  void initState() {
+    super.initState();
+    final cubit = context.read<FeedCubit>();
+    if (cubit.state.status == ViewStatus.initial) {
+      cubit.load();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<FeedCubit>().state;
     return Scaffold(
       appBar: AppBar(title: const Text('Flex Feed')),
-      body: postsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => AppErrorState(
-          message: error.toString(),
-          onRetry: () => ref.invalidate(feedProvider),
-        ),
-        data: (posts) {
-          if (posts.isEmpty) {
-            return const AppEmptyState(
-              title: 'No posts yet',
-              message: 'Complete a session and publish your first ride to the feed.',
-              icon: Icons.photo_library_outlined,
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(feedProvider),
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: posts.length,
-              separatorBuilder: (_, index) => const SizedBox(height: 16),
-              itemBuilder: (context, index) {
-                final post = posts[index];
-                final stats = post.statsJson;
-                return Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white10,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ListTile(
-                        onTap: () => context.push(AppRoutes.publicProfile(post.userId)),
-                        title: Text(post.username),
-                        subtitle: Text(
-                          DateFormat('MMM d - HH:mm').format(post.createdAt),
-                        ),
-                        trailing: const Chip(label: Text('Zone Guardian')),
+      body: switch (state.status) {
+        ViewStatus.loading => const Center(child: CircularProgressIndicator()),
+        ViewStatus.failure => AppErrorState(
+            message: state.errorMessage ?? 'Failed to load feed',
+            onRetry: () => context.read<FeedCubit>().load(),
+          ),
+        _ => state.posts.isEmpty
+            ? const AppEmptyState(
+                title: 'No posts yet',
+                message: 'Complete a session and publish your first ride to the feed.',
+                icon: Icons.photo_library_outlined,
+              )
+            : RefreshIndicator(
+                onRefresh: () => context.read<FeedCubit>().refresh(),
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: state.posts.length,
+                  separatorBuilder: (_, index) => const SizedBox(height: 16),
+                  itemBuilder: (context, index) {
+                    final post = state.posts[index];
+                    final stats = post.statsJson;
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white10,
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: () => context.push(AppRoutes.feedPost(post.id)),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: _PostMedia(post: post, stats: stats),
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Text(post.caption),
-                      ),
-                      Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          IconButton(
-                            onPressed: () => ref.read(feedActionsProvider).like(post.id),
-                            icon: Icon(
-                              post.likedByMe ? Icons.favorite : Icons.favorite_border,
-                              color: post.likedByMe ? Colors.redAccent : null,
+                          ListTile(
+                            onTap: () => context.push(AppRoutes.publicProfile(post.userId)),
+                            title: Text(post.username),
+                            subtitle: Text(
+                              DateFormat('MMM d - HH:mm').format(post.createdAt),
+                            ),
+                            trailing: const Chip(label: Text('Zone Guardian')),
+                          ),
+                          InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () => context.push(AppRoutes.feedPost(post.id)),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: PostMedia(post: post, stats: stats),
+                              ),
                             ),
                           ),
-                          Text('${post.likeCount}'),
-                          const SizedBox(width: 12),
-                          IconButton(
-                            onPressed: () => context.push(AppRoutes.feedPost(post.id)),
-                            icon: const Icon(Icons.chat_bubble_outline),
+                          Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Text(post.caption),
                           ),
-                          Text('${post.commentCount}'),
-                          const SizedBox(width: 12),
-                          IconButton(
-                            onPressed: () => context.push(AppRoutes.feedPost(post.id)),
-                            icon: const Icon(Icons.share_outlined),
+                          Row(
+                            children: [
+                              IconButton(
+                                onPressed: () => context.read<FeedCubit>().toggleLike(post.id),
+                                icon: Icon(
+                                  post.likedByMe ? Icons.favorite : Icons.favorite_border,
+                                  color: post.likedByMe ? Colors.redAccent : null,
+                                ),
+                              ),
+                              Text('${post.likeCount}'),
+                              const SizedBox(width: 12),
+                              IconButton(
+                                onPressed: () => context.push(AppRoutes.feedPost(post.id)),
+                                icon: const Icon(Icons.chat_bubble_outline),
+                              ),
+                              Text('${post.commentCount}'),
+                              const SizedBox(width: 12),
+                              IconButton(
+                                onPressed: () => context.push(AppRoutes.feedPost(post.id)),
+                                icon: const Icon(Icons.share_outlined),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          );
-        },
-      ),
+                    );
+                  },
+                ),
+              ),
+      },
     );
   }
 }
@@ -133,10 +145,6 @@ class PostMedia extends StatelessWidget {
     }
     return FallbackCard(stats: stats);
   }
-}
-
-class _PostMedia extends PostMedia {
-  const _PostMedia({required super.post, required super.stats});
 }
 
 class FallbackCard extends StatelessWidget {

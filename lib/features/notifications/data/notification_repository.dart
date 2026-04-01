@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vibetreck/shared/models/app_notification_item.dart';
 
 abstract class NotificationRepository {

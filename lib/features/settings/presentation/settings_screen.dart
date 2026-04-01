@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:vibetreck/core/config/app_env.dart';
+import 'package:vibetreck/core/di/app_services.dart';
 import 'package:vibetreck/core/notifications/push_notifications_service.dart';
 import 'package:vibetreck/core/routing/app_routes.dart';
 import 'package:vibetreck/core/theme/theme_controller.dart';
@@ -10,15 +9,15 @@ import 'package:vibetreck/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:vibetreck/features/auth/presentation/bloc/auth_state.dart';
 import 'package:vibetreck/features/notifications/application/notification_controller.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final env = ref.watch(appEnvProvider);
-    final themeSettings = ref.watch(themeControllerProvider);
-    final themeActions = ref.read(themeControllerProvider.notifier);
-    final unreadNotifications = ref.watch(unreadNotificationCountProvider).asData?.value ?? 0;
+  Widget build(BuildContext context) {
+    final env = context.read<AppServices>().env;
+    final themeSettings = context.watch<ThemeController>().state;
+    final themeActions = context.read<ThemeController>();
+    final unreadNotifications = context.watch<NotificationsCubit>().state.unreadCount;
 
     return BlocBuilder<AuthCubit, AuthState>(
       builder: (context, authState) {
@@ -41,7 +40,7 @@ class SettingsScreen extends ConsumerWidget {
                         leading: const Icon(Icons.logout_rounded),
                         title: const Text('Sign out'),
                         subtitle: const Text('This device will stop receiving account notifications until you sign in again.'),
-                        onTap: () => _confirmSignOut(context, ref),
+                        onTap: () => _confirmSignOut(context),
                       )
                     else
                       ListTile(
@@ -188,7 +187,7 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
+  Future<void> _confirmSignOut(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -209,9 +208,9 @@ class SettingsScreen extends ConsumerWidget {
 
     if (confirmed != true) return;
 
-    await ref.read(pushNotificationsServiceProvider).unregisterCurrentDevice();
+    await context.read<PushNotificationsService>().unregisterCurrentDevice();
     await context.read<AuthCubit>().signOut();
-    ref.read(notificationActionsProvider).refresh();
+    await context.read<NotificationsCubit>().refresh();
     if (context.mounted) {
       context.go(AppRoutes.auth);
     }

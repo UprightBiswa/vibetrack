@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vibetreck/core/routing/app_routes.dart';
-import 'package:vibetreck/core/theme/app_theme.dart';
+import 'package:vibetreck/features/feed/application/feed_controller.dart';
 import 'package:vibetreck/features/profile/presentation/bloc/current_profile_cubit.dart';
 import 'package:vibetreck/features/tracking/application/tracking_controller.dart';
 import 'package:vibetreck/shared/widgets/bento_card.dart';
+import 'package:vibetreck/core/theme/app_theme.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final profile = context.watch<CurrentProfileCubit>().state.profile;
-    final tracking = ref.watch(trackingControllerProvider);
+    final tracking = context.watch<TrackingCubit>().state;
     final rankLabel = profile?.globalRank != null ? '#${profile!.globalRank}' : '--';
 
     return Scaffold(
@@ -37,14 +37,6 @@ class HomeScreen extends ConsumerWidget {
               gradient: AppTheme.zoneHeroGradient,
               borderRadius: BorderRadius.circular(28),
               border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primary.withValues(alpha: 0.12),
-                  blurRadius: 32,
-                  spreadRadius: -10,
-                  offset: const Offset(0, 18),
-                ),
-              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,7 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-final appEnvProvider = Provider<AppEnv>((ref) => AppEnv.fromDefines());
-
 enum AppMode { dev, staging, production }
 
 class AppEnv {

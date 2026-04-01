@@ -1,16 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:vibetreck/core/providers/repositories.dart';
-
-final mediaUploadServiceProvider = Provider<MediaUploadService>((ref) {
-  final client = ref.watch(supabaseClientProvider);
-  if (client == null) {
-    return LocalMediaUploadService();
-  }
-  return SupabaseMediaUploadService(client);
-});
 
 abstract class MediaUploadService {
   Future<String> uploadPostMedia({

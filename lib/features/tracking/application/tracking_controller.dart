@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart' hide ActivityType;
-import 'package:vibetreck/core/providers/repositories.dart';
-import 'package:vibetreck/features/auth/application/auth_controller.dart';
+import 'package:vibetreck/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:vibetreck/features/profile/data/profile_repository.dart';
+import 'package:vibetreck/features/tracking/data/session_repository.dart';
 import 'package:vibetreck/shared/models/activity_session.dart';
 import 'package:vibetreck/shared/utils/aura_calculator.dart';
 
@@ -65,28 +66,21 @@ class TrackingState {
   );
 }
 
-final trackingControllerProvider =
-    NotifierProvider<TrackingController, TrackingState>(TrackingController.new);
+class TrackingCubit extends Cubit<TrackingState> {
+  TrackingCubit({
+    required SessionRepository sessionRepository,
+    required ProfileRepository profileRepository,
+    required AuthCubit authCubit,
+  })  : _sessionRepository = sessionRepository,
+        _profileRepository = profileRepository,
+        _authCubit = authCubit,
+        super(TrackingState.initial);
 
-final sessionByIdProvider = FutureProvider.family<ActivitySession?, String>((
-  ref,
-  sessionId,
-) {
-  return ref.read(sessionRepositoryProvider).getSession(sessionId);
-});
-
-class TrackingController extends Notifier<TrackingState> {
+  final SessionRepository _sessionRepository;
+  final ProfileRepository _profileRepository;
+  final AuthCubit _authCubit;
   StreamSubscription<Position>? _positionSub;
   Timer? _ticker;
-
-  @override
-  TrackingState build() {
-    ref.onDispose(() {
-      _positionSub?.cancel();
-      _ticker?.cancel();
-    });
-    return TrackingState.initial;
-  }
 
   Future<void> start() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -107,13 +101,15 @@ class TrackingController extends Notifier<TrackingState> {
     }
     await _positionSub?.cancel();
     _ticker?.cancel();
-    state = TrackingState.initial.copyWith(
-      running: true,
-      startedAt: DateTime.now(),
+    emit(
+      TrackingState.initial.copyWith(
+        running: true,
+        startedAt: DateTime.now(),
+      ),
     );
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!state.running || state.paused) return;
-      state = state.copyWith(durationS: state.durationS + 1);
+      emit(state.copyWith(durationS: state.durationS + 1));
     });
     _positionSub = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
@@ -123,23 +119,29 @@ class TrackingController extends Notifier<TrackingState> {
     ).listen(_onPosition);
   }
 
-  void pause() => state = state.copyWith(paused: true);
-  void resume() => state = state.copyWith(paused: false);
+  void pause() => emit(state.copyWith(paused: true));
+  void resume() => emit(state.copyWith(paused: false));
+
+  Future<ActivitySession?> loadSession(String sessionId) {
+    return _sessionRepository.getSession(sessionId);
+  }
 
   void _onPosition(Position point) {
     if (!state.running || state.paused) return;
     final next = List<Position>.from(state.points)..add(point);
     final distance = _calculateDistance(next);
     final duration = max(state.durationS, 1);
-    state = state.copyWith(
-      points: next,
-      distanceM: distance,
-      avgSpeedMps: distance / duration,
+    emit(
+      state.copyWith(
+        points: next,
+        distanceM: distance,
+        avgSpeedMps: distance / duration,
+      ),
     );
   }
 
   Future<String> finish({ActivityType type = ActivityType.cycle}) async {
-    final user = ref.read(authUserProvider).asData?.value;
+    final user = _authCubit.state.user;
     if (user == null) {
       throw Exception('User is not authenticated');
     }
@@ -164,18 +166,17 @@ class TrackingController extends Notifier<TrackingState> {
       calories: (state.durationS * 0.12).round(),
       routeGeojson: _toGeoJson(state.points),
     );
-    final sessionRepo = ref.read(sessionRepositoryProvider);
-    await sessionRepo.createSession(session);
-    await ref
-        .read(profileRepositoryProvider)
-        .addAura(userId: user.id, delta: aura);
+    await _sessionRepository.createSession(session);
+    await _profileRepository.addAura(userId: user.id, delta: aura);
     await _positionSub?.cancel();
     _ticker?.cancel();
-    state = state.copyWith(
-      running: false,
-      paused: false,
-      lastSessionId: sessionId,
-      lastAuraAwarded: aura,
+    emit(
+      state.copyWith(
+        running: false,
+        paused: false,
+        lastSessionId: sessionId,
+        lastAuraAwarded: aura,
+      ),
     );
     return sessionId;
   }
@@ -200,5 +201,11 @@ class TrackingController extends Notifier<TrackingState> {
       'coordinates': points.map((p) => [p.longitude, p.latitude]).toList(),
     };
   }
-}
 
+  @override
+  Future<void> close() async {
+    await _positionSub?.cancel();
+    _ticker?.cancel();
+    return super.close();
+  }
+}

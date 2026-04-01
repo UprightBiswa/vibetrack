@@ -4,28 +4,32 @@ import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vibetreck/core/logging/app_logger.dart';
-import 'package:vibetreck/core/network/api_client.dart';
 import 'package:vibetreck/core/notifications/notification_navigation.dart';
-import 'package:vibetreck/core/routing/app_router.dart';
-import 'package:vibetreck/features/auth/application/auth_controller.dart';
+import 'package:vibetreck/features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:vibetreck/features/auth/presentation/bloc/auth_state.dart';
 import 'package:vibetreck/features/notifications/application/notification_controller.dart';
-import 'package:vibetreck/shared/models/app_user.dart';
-
-final pushNotificationsServiceProvider = Provider<PushNotificationsService>((ref) {
-  final service = PushNotificationsService(ref);
-  ref.onDispose(service.dispose);
-  return service;
-});
 
 class PushNotificationsService {
-  PushNotificationsService(this._ref);
+  PushNotificationsService({
+    required Dio? apiClient,
+    required AuthCubit authCubit,
+    required NotificationsCubit notificationsCubit,
+    required GlobalKey<NavigatorState> navigatorKey,
+  })  : _apiClient = apiClient,
+        _authCubit = authCubit,
+        _notificationsCubit = notificationsCubit,
+        _navigatorKey = navigatorKey;
 
-  final Ref _ref;
+  final Dio? _apiClient;
+  final AuthCubit _authCubit;
+  final NotificationsCubit _notificationsCubit;
+  final GlobalKey<NavigatorState> _navigatorKey;
+
   StreamSubscription<String>? _tokenRefreshSubscription;
   StreamSubscription<RemoteMessage>? _foregroundSubscription;
   StreamSubscription<RemoteMessage>? _openedAppSubscription;
+  StreamSubscription<AuthState>? _authSubscription;
   bool _initialized = false;
   String? _lastRegisteredToken;
 
@@ -75,13 +79,13 @@ class PushNotificationsService {
         AppLogger.info(
           'Foreground FCM message received: ${message.messageId ?? 'unknown'}',
         );
-        _ref.read(notificationActionsProvider).refresh();
+        _notificationsCubit.refresh();
         _showForegroundMessage(message);
       });
 
       _openedAppSubscription = FirebaseMessaging.onMessageOpenedApp.listen((message) {
         AppLogger.info('FCM message opened app: ${message.messageId ?? 'unknown'}');
-        _ref.read(notificationActionsProvider).refresh();
+        _notificationsCubit.refresh();
         _openMessageTarget(message);
       });
 
@@ -93,10 +97,8 @@ class PushNotificationsService {
         });
       }
 
-      _ref.listen<AsyncValue<AppUser?>>(authUserProvider, (previous, next) async {
-        final user = next.asData?.value;
-        await _handleAuthUserChanged(user);
-      }, fireImmediately: true);
+      _authSubscription = _authCubit.stream.listen(_handleAuthStateChanged);
+      await _handleAuthStateChanged(_authCubit.state);
     } catch (error, stackTrace) {
       AppLogger.warning(
         'Push notifications initialization skipped or failed',
@@ -108,20 +110,19 @@ class PushNotificationsService {
 
   Future<void> unregisterCurrentDevice() async {
     final token = _lastRegisteredToken ?? await FirebaseMessaging.instance.getToken();
-    final dio = _ref.read(apiClientProvider);
-    final authUser = _ref.read(authUserProvider).asData?.value;
-    if (token == null || token.isEmpty || dio == null || authUser == null) {
+    final authUser = _authCubit.state.user;
+    if (token == null || token.isEmpty || _apiClient == null || authUser == null) {
       return;
     }
 
     try {
-      await dio.post(
+      await _apiClient.post(
         '/api/v1/notifications/device-token/delete',
         data: {'token': token},
       );
       AppLogger.info('Removed FCM device token for ${authUser.id}');
       _lastRegisteredToken = null;
-      _ref.read(notificationActionsProvider).refresh();
+      await _notificationsCubit.refresh();
     } on DioException catch (error, stackTrace) {
       AppLogger.error(
         'Failed to delete FCM device token',
@@ -131,7 +132,8 @@ class PushNotificationsService {
     }
   }
 
-  Future<void> _handleAuthUserChanged(AppUser? user) async {
+  Future<void> _handleAuthStateChanged(AuthState state) async {
+    final user = state.user;
     if (user == null) {
       AppLogger.info('FCM token registration skipped because user is signed out');
       return;
@@ -147,20 +149,19 @@ class PushNotificationsService {
   }
 
   Future<void> _registerCurrentToken(String token) async {
-    final dio = _ref.read(apiClientProvider);
-    if (dio == null) {
+    if (_apiClient == null) {
       AppLogger.warning('FCM token registration skipped because backend API is unavailable');
       return;
     }
 
-    final authUser = _ref.read(authUserProvider).asData?.value;
+    final authUser = _authCubit.state.user;
     if (authUser == null) {
       AppLogger.info('FCM token registration deferred until user signs in');
       return;
     }
 
     try {
-      await dio.post(
+      await _apiClient.post(
         '/api/v1/notifications/device-token',
         data: {
           'token': token,
@@ -168,7 +169,7 @@ class PushNotificationsService {
         },
       );
       _lastRegisteredToken = token;
-      _ref.read(notificationActionsProvider).refresh();
+      await _notificationsCubit.refresh();
       AppLogger.info('Registered FCM device token for ${authUser.id}');
     } on DioException catch (error, stackTrace) {
       AppLogger.error(
@@ -186,7 +187,7 @@ class PushNotificationsService {
   }
 
   void _showForegroundMessage(RemoteMessage message) {
-    final context = _ref.read(navigatorKeyProvider).currentContext;
+    final context = _navigatorKey.currentContext;
     if (context == null) return;
 
     final messenger = ScaffoldMessenger.maybeOf(context);
@@ -213,11 +214,11 @@ class PushNotificationsService {
     if (notificationId != null && notificationId.toString().isNotEmpty) {
       Future<void>(() async {
         try {
-          await _ref.read(notificationActionsProvider).markRead(notificationId.toString());
+          await _notificationsCubit.markRead(notificationId.toString());
         } catch (_) {}
       });
     }
-    final context = _ref.read(navigatorKeyProvider).currentContext;
+    final context = _navigatorKey.currentContext;
     if (context == null) return;
     openNotificationTarget(
       context,
@@ -231,5 +232,6 @@ class PushNotificationsService {
     _tokenRefreshSubscription?.cancel();
     _foregroundSubscription?.cancel();
     _openedAppSubscription?.cancel();
+    _authSubscription?.cancel();
   }
 }

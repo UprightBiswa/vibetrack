@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:vibetreck/core/bloc/view_status.dart';
@@ -16,11 +15,11 @@ import 'package:vibetreck/shared/widgets/app_empty_state.dart';
 import 'package:vibetreck/shared/widgets/app_error_state.dart';
 import 'package:vibetreck/shared/widgets/bento_card.dart';
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final profileState = context.watch<CurrentProfileCubit>().state;
 
     return Scaffold(
@@ -39,12 +38,12 @@ class ProfileScreen extends ConsumerWidget {
             message: profileState.errorMessage ?? 'Failed to load profile',
             onRetry: () => context.read<CurrentProfileCubit>().refresh(),
           ),
-        _ => _buildContent(context, ref, profileState.profile),
+        _ => _buildContent(context, profileState.profile),
       },
     );
   }
 
-  Widget _buildContent(BuildContext context, WidgetRef ref, UserProfile? profile) {
+  Widget _buildContent(BuildContext context, UserProfile? profile) {
     if (profile == null) {
       return const AppEmptyState(
         title: 'Profile unavailable',
@@ -53,59 +52,50 @@ class ProfileScreen extends ConsumerWidget {
       );
     }
 
-    final ownFeedAsync = ref.watch(userFeedProvider(profile.id));
-    return ownFeedAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => AppErrorState(
-        message: error.toString(),
-        onRetry: () => ref.invalidate(feedProvider),
-      ),
-      data: (posts) {
-        final analytics = _ProfileAnalytics.fromPosts(posts);
-        return RefreshIndicator(
-          onRefresh: () async {
-            await context.read<CurrentProfileCubit>().refresh();
-            ref.invalidate(feedProvider);
-          },
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            children: [
-              _ProfileHero(profile: profile, analytics: analytics),
-              const SizedBox(height: 18),
-              _AnalyticsGrid(profile: profile, analytics: analytics),
-              const SizedBox(height: 18),
-              _SectionHeader(
-                title: 'Ride Signals',
-                actionLabel: 'Leaderboard',
-                onTap: () => context.push(AppRoutes.leaderboard),
-              ),
-              const SizedBox(height: 12),
-              _SignalStrip(profile: profile, analytics: analytics),
-              const SizedBox(height: 20),
-              _SectionHeader(
-                title: 'Own Feed',
-                actionLabel: 'Global feed',
-                onTap: () => context.go(AppRoutes.feed),
-              ),
-              const SizedBox(height: 12),
-              if (posts.isEmpty)
-                const AppEmptyState(
-                  title: 'No rides published yet',
-                  message:
-                      'Finish a session and publish it to start building your public rider profile.',
-                  icon: Icons.directions_bike_outlined,
-                )
-              else
-                ...posts.map(
-                  (post) => Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: _OwnPostCard(post: post),
-                  ),
-                ),
-            ],
-          ),
-        );
+    final posts = context.watch<FeedCubit>().postsForUser(profile.id);
+    final analytics = _ProfileAnalytics.fromPosts(posts);
+    return RefreshIndicator(
+      onRefresh: () async {
+        await context.read<CurrentProfileCubit>().refresh();
+        await context.read<FeedCubit>().refresh();
       },
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        children: [
+          _ProfileHero(profile: profile, analytics: analytics),
+          const SizedBox(height: 18),
+          _AnalyticsGrid(profile: profile, analytics: analytics),
+          const SizedBox(height: 18),
+          _SectionHeader(
+            title: 'Ride Signals',
+            actionLabel: 'Leaderboard',
+            onTap: () => context.push(AppRoutes.leaderboard),
+          ),
+          const SizedBox(height: 12),
+          _SignalStrip(profile: profile, analytics: analytics),
+          const SizedBox(height: 20),
+          _SectionHeader(
+            title: 'Own Feed',
+            actionLabel: 'Global feed',
+            onTap: () => context.go(AppRoutes.feed),
+          ),
+          const SizedBox(height: 12),
+          if (posts.isEmpty)
+            const AppEmptyState(
+              title: 'No rides published yet',
+              message:
+                  'Finish a session and publish it to start building your public rider profile.',
+              icon: Icons.directions_bike_outlined,
+            )
+          else
+            ...posts.map(
+              (post) => Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: _OwnPostCard(post: post),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -127,14 +117,6 @@ class _ProfileHero extends StatelessWidget {
         gradient: AppTheme.zoneHeroGradient,
         borderRadius: BorderRadius.circular(30),
         border: Border.all(color: AppTheme.primary.withValues(alpha: 0.24)),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primary.withValues(alpha: 0.12),
-            blurRadius: 32,
-            spreadRadius: -12,
-            offset: const Offset(0, 18),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

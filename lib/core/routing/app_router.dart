@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:vibetreck/core/providers/repositories.dart';
 import 'package:vibetreck/core/routing/app_routes.dart';
 import 'package:vibetreck/core/routing/app_scaffold.dart';
+import 'package:vibetreck/features/auth/data/auth_repository.dart';
 import 'package:vibetreck/features/auth/presentation/auth_screen.dart';
 import 'package:vibetreck/features/auth/presentation/splash_screen.dart';
 import 'package:vibetreck/features/feed/presentation/feed_post_detail_screen.dart';
@@ -21,21 +21,16 @@ import 'package:vibetreck/features/tracking/presentation/tracking_screen.dart';
 import 'package:vibetreck/features/zones/presentation/zones_screen.dart';
 import 'package:vibetreck/shared/widgets/app_error_state.dart';
 
-final navigatorKeyProvider = Provider<GlobalKey<NavigatorState>>(
-  (ref) => GlobalKey<NavigatorState>(),
-);
-
-final appRouterProvider = Provider<GoRouter>((ref) {
-  final navKey = ref.watch(navigatorKeyProvider);
-  final authRepository = ref.watch(authRepositoryProvider);
+GoRouter createAppRouter({
+  required AuthRepository authRepository,
+  required GlobalKey<NavigatorState> navigatorKey,
+}) {
   final refreshListenable = GoRouterRefreshStream(
     authRepository.authStateChanges(),
   );
 
-  ref.onDispose(refreshListenable.dispose);
-
   return GoRouter(
-    navigatorKey: navKey,
+    navigatorKey: navigatorKey,
     initialLocation: AppRoutes.splash,
     refreshListenable: refreshListenable,
     errorBuilder: (context, state) => AppErrorState(
@@ -144,7 +139,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
-});
+}
 
 class GoRouterRefreshStream extends ChangeNotifier {
   GoRouterRefreshStream(Stream<dynamic> stream) {

@@ -1,16 +1,20 @@
+import 'dart:async';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-final connectivityStreamProvider = StreamProvider<List<ConnectivityResult>>((
-  ref,
-) {
-  return Connectivity().onConnectivityChanged;
-});
-
-final isOnlineProvider = Provider<bool>((ref) {
-  final connectivity = ref.watch(connectivityStreamProvider).asData?.value;
-  if (connectivity == null || connectivity.isEmpty) {
-    return true;
+class ConnectivityCubit extends Cubit<bool> {
+  ConnectivityCubit() : super(true) {
+    _subscription = Connectivity().onConnectivityChanged.listen((results) {
+      emit(!results.contains(ConnectivityResult.none));
+    });
   }
-  return !connectivity.contains(ConnectivityResult.none);
-});
+
+  StreamSubscription<List<ConnectivityResult>>? _subscription;
+
+  @override
+  Future<void> close() async {
+    await _subscription?.cancel();
+    return super.close();
+  }
+}

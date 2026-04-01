@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vibetreck/core/network/network_status_provider.dart';
 import 'package:vibetreck/core/routing/app_routes.dart';
 import 'package:vibetreck/core/theme/app_theme.dart';
 
-class AppScaffold extends ConsumerWidget {
+class AppScaffold extends StatelessWidget {
   const AppScaffold({
     super.key,
     required this.child,
@@ -19,8 +19,8 @@ class AppScaffold extends ConsumerWidget {
   final ValueChanged<int> onSelectTab;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isOnline = ref.watch(isOnlineProvider);
+  Widget build(BuildContext context) {
+    final isOnline = context.select((ConnectivityCubit cubit) => cubit.state);
     final currentLocation = GoRouterState.of(context).uri.path;
     final isOnHomeBranch = currentLocation == AppRoutes.home ||
         currentLocation.startsWith('${AppRoutes.home}/');

@@ -1,28 +1,30 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:vibetreck/core/bloc/view_status.dart';
+import 'package:vibetreck/core/di/app_services.dart';
+import 'package:vibetreck/core/network/network_status_provider.dart';
 import 'package:vibetreck/features/feed/application/feed_controller.dart';
 import 'package:vibetreck/features/feed/presentation/feed_screen.dart';
 import 'package:vibetreck/shared/widgets/app_error_state.dart';
 
-class FeedPostDetailScreen extends ConsumerStatefulWidget {
+class FeedPostDetailScreen extends StatefulWidget {
   const FeedPostDetailScreen({super.key, required this.postId});
 
   final String postId;
 
   @override
-  ConsumerState<FeedPostDetailScreen> createState() => _FeedPostDetailScreenState();
+  State<FeedPostDetailScreen> createState() => _FeedPostDetailScreenState();
 }
 
-class _FeedPostDetailScreenState extends ConsumerState<FeedPostDetailScreen> {
+class _FeedPostDetailScreenState extends State<FeedPostDetailScreen> {
   final _commentController = TextEditingController();
   final _shareController = ScreenshotController();
-  bool _submitting = false;
   bool _sharing = false;
   String? _status;
 
@@ -32,33 +34,21 @@ class _FeedPostDetailScreenState extends ConsumerState<FeedPostDetailScreen> {
     super.dispose();
   }
 
-  Future<void> _submitComment() async {
+  Future<void> _submitComment(FeedPostDetailCubit cubit) async {
     final body = _commentController.text.trim();
     if (body.isEmpty) {
       setState(() => _status = 'Write a comment first.');
       return;
     }
 
-    setState(() {
-      _submitting = true;
-      _status = null;
-    });
-
     try {
-      await ref.read(feedActionsProvider).addComment(
-            postId: widget.postId,
-            body: body,
-          );
+      await cubit.addComment(body);
       _commentController.clear();
       if (!mounted) return;
       setState(() => _status = 'Comment posted');
     } catch (error) {
       if (!mounted) return;
       setState(() => _status = error.toString());
-    } finally {
-      if (mounted) {
-        setState(() => _submitting = false);
-      }
     }
   }
 
@@ -94,140 +84,151 @@ class _FeedPostDetailScreenState extends ConsumerState<FeedPostDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final postAsync = ref.watch(feedPostProvider(widget.postId));
-    final commentsAsync = ref.watch(postCommentsProvider(widget.postId));
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Post Details')),
-      body: postAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => AppErrorState(message: error.toString()),
-        data: (post) {
-          final stats = post.statsJson;
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(post.username),
-                subtitle: Text(DateFormat('MMM d - HH:mm').format(post.createdAt)),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      post.likedByMe ? Icons.favorite : Icons.favorite_border,
-                      color: post.likedByMe ? Colors.redAccent : null,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 4),
-                    Text('${post.likeCount}'),
-                  ],
+    return BlocProvider(
+      create: (context) => FeedPostDetailCubit(
+        postId: widget.postId,
+        repository: context.read<AppServices>().feedRepository,
+        connectivityCubit: context.read<ConnectivityCubit>(),
+        feedCubit: context.read<FeedCubit>(),
+      )..load(),
+      child: BlocBuilder<FeedPostDetailCubit, FeedPostDetailState>(
+        builder: (context, state) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Post Details')),
+            body: switch (state.status) {
+              ViewStatus.loading => const Center(child: CircularProgressIndicator()),
+              ViewStatus.failure => AppErrorState(
+                  message: state.errorMessage ?? 'Failed to load post',
+                  onRetry: () => context.read<FeedPostDetailCubit>().load(),
                 ),
-              ),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: PostMedia(post: post, stats: stats),
-              ),
-              const SizedBox(height: 12),
-              Text(post.caption),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  _MetricChip(label: 'Distance', value: '${stats['distanceKm'] ?? '-'} km'),
-                  _MetricChip(label: 'Duration', value: '${stats['durationMin'] ?? '-'} min'),
-                  _MetricChip(label: 'Calories', value: '${stats['calories'] ?? '-'} kcal'),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Share Card Preview',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
-              Screenshot(
-                controller: _shareController,
-                child: _PostShareCard(post: post),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () => ref.read(feedActionsProvider).like(post.id),
-                    icon: Icon(
-                      post.likedByMe ? Icons.favorite : Icons.favorite_border,
-                      color: post.likedByMe ? Colors.redAccent : null,
-                    ),
-                    label: Text(post.likedByMe ? 'Unlike' : 'Like'),
-                  ),
-                  const SizedBox(width: 12),
-                  OutlinedButton.icon(
-                    onPressed: _sharing ? null : () => _sharePost(post.username, stats),
-                    icon: const Icon(Icons.share_outlined),
-                    label: Text(_sharing ? 'Sharing...' : 'Share'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _commentController,
-                decoration: const InputDecoration(
-                  labelText: 'Add a comment',
-                  hintText: 'Strong ride. Nice route.',
-                ),
-                minLines: 1,
-                maxLines: 3,
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: _submitting ? null : _submitComment,
-                child: Text(_submitting ? 'Posting...' : 'Post Comment'),
-              ),
-              if (_status != null) ...[
-                const SizedBox(height: 8),
-                Text(_status!, style: const TextStyle(color: Colors.white70)),
-              ],
-              const SizedBox(height: 24),
-              Text(
-                'Comments',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
-              commentsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => AppErrorState(
-                  message: error.toString(),
-                  onRetry: () => ref.invalidate(postCommentsProvider(widget.postId)),
-                ),
-                data: (comments) {
-                  if (comments.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Text('No comments yet. Start the conversation.'),
-                    );
-                  }
-                  return Column(
-                    children: comments.map((comment) {
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        child: ListTile(
-                          title: Text(comment.username),
-                          subtitle: Text(comment.body),
-                          trailing: Text(
-                            DateFormat('HH:mm').format(comment.createdAt),
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  );
-                },
-              ),
-            ],
+              _ => _buildContent(context, state),
+            },
           );
         },
       ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, FeedPostDetailState state) {
+    final post = state.post;
+    if (post == null) {
+      return const AppErrorState(message: 'Post not found');
+    }
+    final stats = post.statsJson;
+    final cubit = context.read<FeedPostDetailCubit>();
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(post.username),
+          subtitle: Text(DateFormat('MMM d - HH:mm').format(post.createdAt)),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                post.likedByMe ? Icons.favorite : Icons.favorite_border,
+                color: post.likedByMe ? Colors.redAccent : null,
+                size: 18,
+              ),
+              const SizedBox(width: 4),
+              Text('${post.likeCount}'),
+            ],
+          ),
+        ),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: PostMedia(post: post, stats: stats),
+        ),
+        const SizedBox(height: 12),
+        Text(post.caption),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            _MetricChip(label: 'Distance', value: '${stats['distanceKm'] ?? '-'} km'),
+            _MetricChip(label: 'Duration', value: '${stats['durationMin'] ?? '-'} min'),
+            _MetricChip(label: 'Calories', value: '${stats['calories'] ?? '-'} kcal'),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Share Card Preview',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 12),
+        Screenshot(
+          controller: _shareController,
+          child: _PostShareCard(post: post),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            OutlinedButton.icon(
+              onPressed: cubit.toggleLike,
+              icon: Icon(
+                post.likedByMe ? Icons.favorite : Icons.favorite_border,
+                color: post.likedByMe ? Colors.redAccent : null,
+              ),
+              label: Text(post.likedByMe ? 'Unlike' : 'Like'),
+            ),
+            const SizedBox(width: 12),
+            OutlinedButton.icon(
+              onPressed: _sharing ? null : () => _sharePost(post.username, stats),
+              icon: const Icon(Icons.share_outlined),
+              label: Text(_sharing ? 'Sharing...' : 'Share'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _commentController,
+          decoration: const InputDecoration(
+            labelText: 'Add a comment',
+            hintText: 'Strong ride. Nice route.',
+          ),
+          minLines: 1,
+          maxLines: 3,
+        ),
+        const SizedBox(height: 12),
+        ElevatedButton(
+          onPressed: state.isSubmittingComment ? null : () => _submitComment(cubit),
+          child: Text(state.isSubmittingComment ? 'Posting...' : 'Post Comment'),
+        ),
+        if (_status != null) ...[
+          const SizedBox(height: 8),
+          Text(_status!, style: const TextStyle(color: Colors.white70)),
+        ],
+        const SizedBox(height: 24),
+        Text(
+          'Comments',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 12),
+        if (state.comments.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Text('No comments yet. Start the conversation.'),
+          )
+        else
+          Column(
+            children: state.comments.map((comment) {
+              return Card(
+                margin: const EdgeInsets.only(bottom: 10),
+                child: ListTile(
+                  title: Text(comment.username),
+                  subtitle: Text(comment.body),
+                  trailing: Text(
+                    DateFormat('HH:mm').format(comment.createdAt),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+      ],
     );
   }
 }

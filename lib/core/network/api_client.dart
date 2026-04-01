@@ -1,13 +1,14 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vibetreck/core/config/app_env.dart';
 import 'package:vibetreck/core/logging/app_logger.dart';
 import 'package:vibetreck/core/network/api_exception.dart';
 import 'package:vibetreck/core/network/auth_token_provider.dart';
-import 'package:vibetreck/core/network/network_status_provider.dart';
 
-final apiClientProvider = Provider<Dio?>((ref) {
-  final env = ref.watch(appEnvProvider);
+Dio? createApiClient({
+  required AppEnv env,
+  required AuthTokenProvider authTokenProvider,
+  bool Function()? isOnline,
+}) {
   if (!env.hasBackendApi) {
     return null;
   }
@@ -25,8 +26,8 @@ final apiClientProvider = Provider<Dio?>((ref) {
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) async {
-        final isOnline = ref.read(isOnlineProvider);
-        if (!isOnline) {
+        final online = isOnline?.call() ?? true;
+        if (!online) {
           handler.reject(
             DioException(
               requestOptions: options,
@@ -37,7 +38,7 @@ final apiClientProvider = Provider<Dio?>((ref) {
           return;
         }
 
-        final token = await ref.read(authTokenProvider).getAccessToken();
+        final token = await authTokenProvider.getAccessToken();
         if (token != null && token.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $token';
           AppLogger.info('Attached bearer token for ${options.path}');
@@ -97,7 +98,7 @@ final apiClientProvider = Provider<Dio?>((ref) {
   );
 
   return dio;
-});
+}
 
 String _buildConnectionErrorMessage(AppEnv env) {
   final hint = env.backendSetupHint;
@@ -106,4 +107,3 @@ String _buildConnectionErrorMessage(AppEnv env) {
   }
   return 'Unable to reach the backend API at ${env.effectiveBackendApiUrl}. Make sure the FastAPI server is running and reachable from the device.';
 }
-

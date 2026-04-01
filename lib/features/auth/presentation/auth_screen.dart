@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vibetreck/core/config/app_env.dart';
+import 'package:vibetreck/core/di/app_services.dart';
 import 'package:vibetreck/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:vibetreck/features/auth/presentation/bloc/auth_state.dart';
 
-class AuthScreen extends ConsumerStatefulWidget {
+class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
 
   @override
-  ConsumerState<AuthScreen> createState() => _AuthScreenState();
+  State<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends ConsumerState<AuthScreen> {
+class _AuthScreenState extends State<AuthScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isSignUp = false;
@@ -44,7 +43,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final env = ref.watch(appEnvProvider);
+    final env = context.read<AppServices>().env;
     final authConfigured = env.hasSupabase;
 
     return BlocConsumer<AuthCubit, AuthState>(
@@ -112,7 +111,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   child: OutlinedButton.icon(
                     onPressed: state.isSubmitting || !authConfigured
                         ? null
-                        : () => cubit.signInWithGoogle(),
+                        : cubit.signInWithGoogle,
                     icon: const Icon(Icons.account_circle_outlined),
                     label: const Text('Continue with Google'),
                   ),

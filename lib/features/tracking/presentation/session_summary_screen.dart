@@ -1,28 +1,28 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:vibetreck/core/routing/app_routes.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:screenshot/screenshot.dart';
-import 'package:vibetreck/features/auth/application/auth_controller.dart';
+import 'package:vibetreck/core/di/app_services.dart';
+import 'package:vibetreck/core/routing/app_routes.dart';
+import 'package:vibetreck/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:vibetreck/features/feed/application/feed_controller.dart';
 import 'package:vibetreck/features/tracking/application/tracking_controller.dart';
 import 'package:vibetreck/features/tracking/presentation/widgets/flex_overlay_card.dart';
-import 'package:vibetreck/shared/services/media_upload_service.dart';
+import 'package:vibetreck/shared/models/activity_session.dart';
 import 'package:vibetreck/shared/widgets/app_error_state.dart';
 
-class SessionSummaryScreen extends ConsumerStatefulWidget {
+class SessionSummaryScreen extends StatefulWidget {
   const SessionSummaryScreen({super.key, required this.sessionId});
   final String sessionId;
 
   @override
-  ConsumerState<SessionSummaryScreen> createState() =>
-      _SessionSummaryScreenState();
+  State<SessionSummaryScreen> createState() => _SessionSummaryScreenState();
 }
 
-class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
+class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
   final _screenshotController = ScreenshotController();
   final _captionController = TextEditingController();
   final _picker = ImagePicker();
@@ -32,6 +32,13 @@ class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
   bool _publishing = false;
   bool _pickingMedia = false;
   String? _status;
+  late Future<ActivitySession?> _sessionFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _sessionFuture = context.read<TrackingCubit>().loadSession(widget.sessionId);
+  }
 
   Future<void> _pickMedia(ImageSource source) async {
     setState(() {
@@ -67,23 +74,22 @@ class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
     required String fileExtension,
     required String contentType,
   }) async {
-    final user = ref.read(authUserProvider).asData?.value;
+    final user = context.read<AuthCubit>().state.user;
     if (user == null) return;
+    final services = context.read<AppServices>();
     setState(() {
       _publishing = true;
       _status = null;
     });
     try {
-      final imageUrl = await ref
-          .read(mediaUploadServiceProvider)
-          .uploadPostMedia(
-            userId: user.id,
-            sessionId: widget.sessionId,
-            bytes: bytes,
-            fileExtension: fileExtension,
-            contentType: contentType,
-          );
-      await ref.read(feedActionsProvider).createPost(
+      final imageUrl = await services.mediaUploadService.uploadPostMedia(
+        userId: user.id,
+        sessionId: widget.sessionId,
+        bytes: bytes,
+        fileExtension: fileExtension,
+        contentType: contentType,
+      );
+      await context.read<FeedCubit>().createPost(
             sessionId: widget.sessionId,
             imageUrl: imageUrl,
             caption: _captionController.text.trim(),
@@ -132,11 +138,18 @@ class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final sessionAsync = ref.watch(sessionByIdProvider(widget.sessionId));
     return Scaffold(
       appBar: AppBar(title: const Text('Session Summary')),
-      body: sessionAsync.when(
-        data: (session) {
+      body: FutureBuilder<ActivitySession?>(
+        future: _sessionFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return AppErrorState(message: snapshot.error.toString());
+          }
+          final session = snapshot.data;
           if (session == null) {
             return const Center(child: Text('Session not found'));
           }
@@ -252,8 +265,6 @@ class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
             ],
           );
         },
-        error: (error, _) => AppErrorState(message: error.toString()),
-        loading: () => const Center(child: CircularProgressIndicator()),
       ),
     );
   }

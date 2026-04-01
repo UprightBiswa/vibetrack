@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
@@ -7,13 +7,13 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:vibetreck/core/routing/app_routes.dart';
 import 'package:vibetreck/features/tracking/application/tracking_controller.dart';
 
-class TrackingScreen extends ConsumerWidget {
+class TrackingScreen extends StatelessWidget {
   const TrackingScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(trackingControllerProvider);
-    final controller = ref.read(trackingControllerProvider.notifier);
+  Widget build(BuildContext context) {
+    final state = context.watch<TrackingCubit>().state;
+    final controller = context.read<TrackingCubit>();
 
     Future<void> onMainTap() async {
       if (!state.running) {

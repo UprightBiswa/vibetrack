@@ -1,10 +1,6 @@
-﻿import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-final themeControllerProvider = NotifierProvider<ThemeController, ThemeSettings>(
-  ThemeController.new,
-);
 
 enum AppThemeMode { system, light, dark }
 
@@ -51,34 +47,27 @@ class ThemeSettings {
   );
 }
 
-class ThemeController extends Notifier<ThemeSettings> {
+class ThemeController extends Cubit<ThemeSettings> {
+  ThemeController() : super(ThemeSettings.fallback) {
+    _load();
+  }
+
   static const _modeKey = 'theme_mode';
   static const _accentKey = 'theme_accent';
   static const _dynamicKey = 'theme_dynamic_color';
 
-  bool _loaded = false;
-
-  @override
-  ThemeSettings build() {
-    if (!_loaded) {
-      _loaded = true;
-      Future<void>(() => _load());
-    }
-    return ThemeSettings.fallback;
-  }
-
   Future<void> setMode(AppThemeMode mode) async {
-    state = state.copyWith(mode: mode);
+    emit(state.copyWith(mode: mode));
     await _persist();
   }
 
   Future<void> setAccent(AppAccentColor accent) async {
-    state = state.copyWith(accent: accent);
+    emit(state.copyWith(accent: accent));
     await _persist();
   }
 
   Future<void> setUseDynamicColor(bool enabled) async {
-    state = state.copyWith(useDynamicColor: enabled);
+    emit(state.copyWith(useDynamicColor: enabled));
     await _persist();
   }
 
@@ -88,16 +77,19 @@ class ThemeController extends Notifier<ThemeSettings> {
     final accentName = prefs.getString(_accentKey);
     final useDynamicColor = prefs.getBool(_dynamicKey);
 
-    state = ThemeSettings(
-      mode: AppThemeMode.values.firstWhere(
-        (value) => value.name == modeName,
-        orElse: () => ThemeSettings.fallback.mode,
+    emit(
+      ThemeSettings(
+        mode: AppThemeMode.values.firstWhere(
+          (value) => value.name == modeName,
+          orElse: () => ThemeSettings.fallback.mode,
+        ),
+        accent: AppAccentColor.values.firstWhere(
+          (value) => value.name == accentName,
+          orElse: () => ThemeSettings.fallback.accent,
+        ),
+        useDynamicColor:
+            useDynamicColor ?? ThemeSettings.fallback.useDynamicColor,
       ),
-      accent: AppAccentColor.values.firstWhere(
-        (value) => value.name == accentName,
-        orElse: () => ThemeSettings.fallback.accent,
-      ),
-      useDynamicColor: useDynamicColor ?? ThemeSettings.fallback.useDynamicColor,
     );
   }
 
