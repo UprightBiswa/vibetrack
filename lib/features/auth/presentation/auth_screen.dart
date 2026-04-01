@@ -452,7 +452,7 @@ class _AuthPanel extends StatelessWidget {
               const SizedBox(height: 8),
               _CyberTextField(
                 controller: passwordController,
-                hintText: '��������',
+                hintText: '••••••••',
                 icon: Icons.lock_open_rounded,
                 obscureText: obscurePassword,
                 enabled: !isSubmitting && authConfigured,

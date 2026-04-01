@@ -13,6 +13,8 @@ class AppTheme {
   static const Color panelLight = Color(0xFFF0ECE3);
   static const Color glowLime = Color(0xFFD6FF3F);
   static const Color glowTeal = Color(0xFF38E0C4);
+  static const Color glowCoral = Color(0xFFFF6B6B);
+  static const Color glowSky = Color(0xFF52B6FF);
 
   static const Color background = backgroundDark;
   static const Color surface = surfaceDark;
@@ -35,13 +37,13 @@ class AppTheme {
   static Color accentFor(AppAccentColor accent) {
     switch (accent) {
       case AppAccentColor.lime:
-        return const Color(0xFFD6FF3F);
+        return glowLime;
       case AppAccentColor.teal:
-        return const Color(0xFF38E0C4);
+        return glowTeal;
       case AppAccentColor.coral:
-        return const Color(0xFFFF7A59);
+        return glowCoral;
       case AppAccentColor.sky:
-        return const Color(0xFF52B6FF);
+        return glowSky;
     }
   }
 
@@ -73,7 +75,8 @@ class AppTheme {
     ColorScheme? dynamicScheme,
   }) {
     final isDark = brightness == Brightness.dark;
-    final scheme = dynamicScheme ??
+    final scheme =
+        dynamicScheme ??
         ColorScheme.fromSeed(
           seedColor: accent,
           brightness: brightness,
@@ -104,8 +107,12 @@ class AppTheme {
           fontWeight: FontWeight.w700,
           letterSpacing: -0.8,
         ),
-        titleLarge: displayFont.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-        titleMedium: displayFont.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        titleLarge: displayFont.titleLarge?.copyWith(
+          fontWeight: FontWeight.w700,
+        ),
+        titleMedium: displayFont.titleMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+        ),
         bodyMedium: displayFont.bodyMedium?.copyWith(height: 1.35),
       ),
       appBarTheme: AppBarTheme(
@@ -128,9 +135,7 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: isDark ? panelDark : surfaceLight,
         selectedColor: scheme.primary.withValues(alpha: 0.18),
-        side: BorderSide(
-          color: isDark ? borderDark : borderLight,
-        ),
+        side: BorderSide(color: isDark ? borderDark : borderLight),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -175,16 +180,16 @@ class AppTheme {
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return GoogleFonts.plusJakartaSans(
-            color: selected ? scheme.primary : scheme.onSurface.withValues(alpha: 0.72),
+            color: selected
+                ? scheme.primary
+                : scheme.onSurface.withValues(alpha: 0.72),
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
           );
         }),
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: isDark ? panelDark : surfaceLight,
-        contentTextStyle: GoogleFonts.plusJakartaSans(
-          color: scheme.onSurface,
-        ),
+        contentTextStyle: GoogleFonts.plusJakartaSans(color: scheme.onSurface),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         behavior: SnackBarBehavior.floating,
       ),
