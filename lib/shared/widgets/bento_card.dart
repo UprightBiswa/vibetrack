@@ -39,15 +39,22 @@ class BentoCard extends StatelessWidget {
         return Container(
           padding: EdgeInsets.all(isCompact ? 12 : 16),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            gradient: LinearGradient(
+              colors: [
+                AppTheme.surface,
+                accent.withValues(alpha: 0.08),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: accent.withValues(alpha: 0.35)),
             boxShadow: [
               BoxShadow(
-                color: accent.withValues(alpha: 0.2),
-                blurRadius: 24,
-                spreadRadius: -8,
-                offset: const Offset(0, 10),
+                color: accent.withValues(alpha: 0.18),
+                blurRadius: 28,
+                spreadRadius: -10,
+                offset: const Offset(0, 12),
               ),
             ],
           ),
@@ -68,7 +75,7 @@ class BentoCard extends StatelessWidget {
                   if (trailing != null) trailing!,
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Flexible(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,

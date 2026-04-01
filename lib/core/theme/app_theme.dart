@@ -1,21 +1,36 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:vibetreck/core/theme/theme_controller.dart';
 
 class AppTheme {
-  static const Color backgroundDark = Color(0xFF0A0A0D);
-  static const Color surfaceDark = Color(0xFF15171C);
+  static const Color backgroundDark = Color(0xFF07090C);
+  static const Color surfaceDark = Color(0xFF10141A);
   static const Color backgroundLight = Color(0xFFF6F4EF);
   static const Color surfaceLight = Color(0xFFFFFFFF);
-  static const Color borderDark = Color(0xFF2B3038);
+  static const Color borderDark = Color(0xFF29313A);
   static const Color borderLight = Color(0xFFD7D2C6);
+  static const Color panelDark = Color(0xFF151B22);
+  static const Color panelLight = Color(0xFFF0ECE3);
+  static const Color glowLime = Color(0xFFD6FF3F);
+  static const Color glowTeal = Color(0xFF38E0C4);
 
-  // Compatibility aliases for existing widgets that still read the old theme API.
   static const Color background = backgroundDark;
   static const Color surface = surfaceDark;
   static const Color border = borderDark;
-  static const Color primary = Color(0xFFD6FF3F);
-  static const Color secondary = Color(0xFF38E0C4);
+  static const Color primary = glowLime;
+  static const Color secondary = glowTeal;
+
+  static const LinearGradient cyberBackground = LinearGradient(
+    colors: [Color(0xFF07090C), Color(0xFF0D1117), Color(0xFF11191B)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient zoneHeroGradient = LinearGradient(
+    colors: [Color(0xFF101714), Color(0xFF1A2608), Color(0xFF0A0E0D)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 
   static Color accentFor(AppAccentColor accent) {
     switch (accent) {
@@ -77,13 +92,20 @@ class AppTheme {
 
     return base.copyWith(
       textTheme: displayFont.copyWith(
+        displaySmall: displayFont.displaySmall?.copyWith(
+          fontWeight: FontWeight.w700,
+          letterSpacing: -1.3,
+        ),
+        headlineMedium: displayFont.headlineMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+          letterSpacing: -1,
+        ),
         headlineSmall: displayFont.headlineSmall?.copyWith(
           fontWeight: FontWeight.w700,
           letterSpacing: -0.8,
         ),
-        titleMedium: displayFont.titleMedium?.copyWith(
-          fontWeight: FontWeight.w700,
-        ),
+        titleLarge: displayFont.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+        titleMedium: displayFont.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         bodyMedium: displayFont.bodyMedium?.copyWith(height: 1.35),
       ),
       appBarTheme: AppBarTheme(
@@ -98,21 +120,22 @@ class AppTheme {
         ),
       ),
       cardTheme: CardThemeData(
-        color: isDark ? surfaceDark : surfaceLight,
+        color: isDark ? panelDark : surfaceLight,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         elevation: isDark ? 0 : 1,
+        margin: EdgeInsets.zero,
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: isDark ? surfaceDark : surfaceLight,
+        backgroundColor: isDark ? panelDark : surfaceLight,
         selectedColor: scheme.primary.withValues(alpha: 0.18),
         side: BorderSide(
           color: isDark ? borderDark : borderLight,
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark ? surfaceDark : surfaceLight,
+        fillColor: isDark ? panelDark : surfaceLight,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide(color: isDark ? borderDark : borderLight),
@@ -129,26 +152,26 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: scheme.primary,
-          foregroundColor: scheme.onPrimary,
+          foregroundColor: Colors.black,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
           ),
-          textStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          textStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
           ),
           side: BorderSide(color: isDark ? borderDark : borderLight),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: isDark ? surfaceDark : surfaceLight,
-        indicatorColor: scheme.primary.withValues(alpha: 0.18),
+        backgroundColor: isDark ? panelDark : surfaceLight,
+        indicatorColor: scheme.primary.withValues(alpha: 0.16),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return GoogleFonts.plusJakartaSans(
@@ -158,7 +181,7 @@ class AppTheme {
         }),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: isDark ? surfaceDark : surfaceLight,
+        backgroundColor: isDark ? panelDark : surfaceLight,
         contentTextStyle: GoogleFonts.plusJakartaSans(
           color: scheme.onSurface,
         ),

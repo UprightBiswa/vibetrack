@@ -24,45 +24,63 @@ class AppScaffold extends ConsumerWidget {
     );
 
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            if (!isOnline)
-              Container(
-                width: double.infinity,
-                color: AppTheme.secondary.withValues(alpha: 0.18),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                child: const Text(
-                  'Offline mode: some features may not sync.',
-                  textAlign: TextAlign.center,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.cyberBackground,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              if (!isOnline)
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.secondary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppTheme.secondary.withValues(alpha: 0.35),
+                    ),
+                  ),
+                  child: const Text(
+                    'Offline mode: some features may not sync.',
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-              ),
-            Expanded(child: child),
-          ],
+              Expanded(child: child),
+            ],
+          ),
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: selected < 0 ? 0 : selected,
-        onDestinationSelected: onTapTab,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_rounded),
-            label: 'Home',
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: NavigationBar(
+            selectedIndex: selected < 0 ? 0 : selected,
+            onDestinationSelected: onTapTab,
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.dashboard_rounded),
+                label: 'Home',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.dynamic_feed_rounded),
+                label: 'Feed',
+              ),
+              NavigationDestination(icon: Icon(Icons.map_rounded), label: 'Zones'),
+              NavigationDestination(
+                icon: Icon(Icons.person_rounded),
+                label: 'Profile',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.settings_rounded),
+                label: 'Settings',
+              ),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(Icons.dynamic_feed_rounded),
-            label: 'Feed',
-          ),
-          NavigationDestination(icon: Icon(Icons.map_rounded), label: 'Zones'),
-          NavigationDestination(
-            icon: Icon(Icons.person_rounded),
-            label: 'Profile',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_rounded),
-            label: 'Settings',
-          ),
-        ],
+        ),
       ),
     );
   }
