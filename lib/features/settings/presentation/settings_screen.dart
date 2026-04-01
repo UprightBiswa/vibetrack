@@ -188,6 +188,11 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Future<void> _confirmSignOut(BuildContext context) async {
+    final pushNotificationsService = context.read<PushNotificationsService>();
+    final authCubit = context.read<AuthCubit>();
+    final notificationsCubit = context.read<NotificationsCubit>();
+    final router = GoRouter.of(context);
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -208,12 +213,10 @@ class SettingsScreen extends StatelessWidget {
 
     if (confirmed != true) return;
 
-    await context.read<PushNotificationsService>().unregisterCurrentDevice();
-    await context.read<AuthCubit>().signOut();
-    await context.read<NotificationsCubit>().refresh();
-    if (context.mounted) {
-      context.go(AppRoutes.auth);
-    }
+    await pushNotificationsService.unregisterCurrentDevice();
+    await authCubit.signOut();
+    notificationsCubit.clear();
+    router.go(AppRoutes.auth);
   }
 
   Color _accentPreviewColor(AppAccentColor accent) {

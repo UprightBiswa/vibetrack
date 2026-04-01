@@ -62,6 +62,10 @@ class NotificationsCubit extends Cubit<NotificationsState> {
     }
   }
 
+  void clear() {
+    emit(const NotificationsState());
+  }
+
   Future<void> refresh() => load();
 
   Future<void> markRead(String notificationId) async {

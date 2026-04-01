@@ -74,8 +74,13 @@ class _VibeTrackAppState extends State<VibeTrackApp> {
       navigatorKey: _navigatorKey,
     );
     _authSubscription = _authCubit.stream.listen((state) {
+      if (!state.initialized) {
+        return;
+      }
       if (state.user != null) {
         _notificationsCubit.load();
+      } else {
+        _notificationsCubit.clear();
       }
     });
     Future<void>(() async {

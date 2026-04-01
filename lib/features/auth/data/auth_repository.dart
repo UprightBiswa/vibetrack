@@ -23,6 +23,16 @@ class SupabaseAuthRepository implements AuthRepository {
   final SupabaseClient _client;
   final String redirectTo;
 
+  AppUser? _sessionBackedUser() {
+    final session = _client.auth.currentSession;
+    final token = session?.accessToken;
+    final user = session?.user;
+    if (user == null || token == null || token.isEmpty) {
+      return null;
+    }
+    return AppUser(id: user.id, email: user.email ?? '');
+  }
+
   @override
   Stream<AppUser?> authStateChanges() {
     return Stream<AppUser?>.multi((controller) {
@@ -36,9 +46,7 @@ class SupabaseAuthRepository implements AuthRepository {
 
   @override
   AppUser? currentUser() {
-    final user = _client.auth.currentUser;
-    if (user == null) return null;
-    return AppUser(id: user.id, email: user.email ?? '');
+    return _sessionBackedUser();
   }
 
   @override
