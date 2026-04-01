@@ -24,16 +24,18 @@ class BentoCard extends StatelessWidget {
         final isCompact = constraints.maxHeight < 110;
         final titleStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
               color: Colors.white70,
-              fontSize: isCompact ? 11 : null,
+              fontSize: isCompact ? 11 : 12,
+              letterSpacing: 0.4,
             );
         final valueStyle = Theme.of(context).textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.w800,
-              fontSize: isCompact ? 18 : null,
+              fontSize: isCompact ? 18 : 28,
               height: 1,
+              letterSpacing: -0.6,
             );
         final subtitleStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Colors.white60,
-              fontSize: isCompact ? 10 : null,
+              fontSize: isCompact ? 10 : 11,
             );
 
         return Container(
@@ -60,10 +62,25 @@ class BentoCard extends StatelessWidget {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: accent,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: accent.withValues(alpha: 0.55),
+                          blurRadius: 12,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       title,
@@ -75,19 +92,17 @@ class BentoCard extends StatelessWidget {
                   if (trailing != null) trailing!,
                 ],
               ),
-              const SizedBox(height: 8),
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(value, style: valueStyle),
-                ),
+              const Spacer(),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(value, style: valueStyle),
               ),
               if (subtitle != null) ...[
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   subtitle!,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: subtitleStyle,
                 ),

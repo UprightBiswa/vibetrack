@@ -15,6 +15,8 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(currentProfileProvider).asData?.value;
     final tracking = ref.watch(trackingControllerProvider);
+    final rankLabel = profile?.globalRank != null ? '#${profile!.globalRank}' : '--';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('VibeTrack'),
@@ -46,14 +48,27 @@ class HomeScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Cyber-Bento Home',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: AppTheme.primary,
-                        letterSpacing: 0.6,
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.28)),
                       ),
+                      child: const Text('ZONE MODE'),
+                    ),
+                    const Spacer(),
+                    Text(
+                      rankLabel,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: AppTheme.primary,
+                          ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 14),
                 Text(
                   'Capture zones. Build streaks. Turn every ride into territory.',
                   style: Theme.of(context).textTheme.headlineSmall,
@@ -66,6 +81,16 @@ class HomeScreen extends ConsumerWidget {
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Colors.white70,
                       ),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _HeroStat(label: 'Aura', value: '${profile?.auraPoints ?? 0}'),
+                    _HeroStat(label: 'Streak', value: '${profile?.currentStreakDays ?? 0}d'),
+                    _HeroStat(label: 'Today', value: '${(tracking.distanceM / 1000).toStringAsFixed(2)} km'),
+                  ],
                 ),
                 const SizedBox(height: 18),
                 Row(
@@ -123,7 +148,7 @@ class HomeScreen extends ConsumerWidget {
                 mainAxisCellCount: 1,
                 child: BentoCard(
                   title: 'Global Rank',
-                  value: profile?.globalRank != null ? '#${profile!.globalRank}' : '-',
+                  value: rankLabel,
                   subtitle: 'Aura leaderboard',
                   accent: const Color(0xFF52B6FF),
                 ),
@@ -134,11 +159,49 @@ class HomeScreen extends ConsumerWidget {
                 child: BentoCard(
                   title: 'Today',
                   value: '${(tracking.distanceM / 1000).toStringAsFixed(2)} KM',
-                  subtitle: '${tracking.durationS ~/ 60} min',
+                  subtitle: '${tracking.durationS ~/ 60} min logged',
                   accent: const Color(0xFFFF7A59),
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroStat extends StatelessWidget {
+  const _HeroStat({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: Colors.white60,
+                ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
           ),
         ],
       ),
