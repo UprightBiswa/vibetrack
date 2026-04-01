@@ -95,6 +95,7 @@ class AppLogger {
   }) {
     final time = timestamp.toIso8601String();
     final errorSuffix = error == null ? '' : ' | error=$error';
-    return '[$time][$level][VibeTrack] $message$errorSuffix';
+    // return '[$time][$level][VibeTrack] $message$errorSuffix';
+    return '[$level] $message$errorSuffix';
   }
 }

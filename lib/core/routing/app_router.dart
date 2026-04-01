@@ -69,36 +69,45 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.auth,
         builder: (context, state) => const AuthScreen(),
       ),
-      ShellRoute(
-        builder: (context, state, child) {
-          return AppScaffold(
-            location: state.uri.path,
-            onTapTab: (index) => context.go(AppRoutes.shellTabs[index]),
-            child: child,
-          );
-        },
-        routes: [
-          GoRoute(
-            path: AppRoutes.home,
-            builder: (context, state) => const HomeScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.feed,
-            builder: (context, state) => const FeedScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.zones,
-            builder: (context, state) => const ZonesScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.profile,
-            builder: (context, state) => const ProfileScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.settings,
-            builder: (context, state) => const SettingsScreen(),
-          ),
-        ],
+      GoRoute(
+        path: AppRoutes.home,
+        builder: (context, state) => AppScaffold(
+          currentIndex: 0,
+          onSelectTab: (index) => context.go(AppRoutes.shellTabs[index]),
+          child: const HomeScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.feed,
+        builder: (context, state) => AppScaffold(
+          currentIndex: 1,
+          onSelectTab: (index) => context.go(AppRoutes.shellTabs[index]),
+          child: const FeedScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.zones,
+        builder: (context, state) => AppScaffold(
+          currentIndex: 2,
+          onSelectTab: (index) => context.go(AppRoutes.shellTabs[index]),
+          child: const ZonesScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.profile,
+        builder: (context, state) => AppScaffold(
+          currentIndex: 3,
+          onSelectTab: (index) => context.go(AppRoutes.shellTabs[index]),
+          child: const ProfileScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.settings,
+        builder: (context, state) => AppScaffold(
+          currentIndex: 4,
+          onSelectTab: (index) => context.go(AppRoutes.shellTabs[index]),
+          child: const SettingsScreen(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.editProfile,

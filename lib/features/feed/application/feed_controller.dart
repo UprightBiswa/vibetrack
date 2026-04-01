@@ -32,6 +32,16 @@ final feedActionsProvider = Provider<FeedActions>((ref) {
   return FeedActions(ref);
 });
 
+final userFeedProvider = Provider.family<AsyncValue<List<FeedPost>>, String>((
+  ref,
+  userId,
+) {
+  final feedAsync = ref.watch(feedProvider);
+  return feedAsync.whenData(
+    (posts) => posts.where((post) => post.userId == userId).toList(),
+  );
+});
+
 class FeedActions {
   FeedActions(this._ref);
   final Ref _ref;
