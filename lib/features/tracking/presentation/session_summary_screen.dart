@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:vibetreck/core/routing/app_routes.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:vibetreck/features/auth/application/auth_controller.dart';
@@ -90,7 +91,7 @@ class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
           );
       if (mounted) {
         setState(() => _status = 'Posted to feed');
-        context.go('/feed');
+        context.go(AppRoutes.feed);
       }
     } catch (err) {
       setState(() => _status = err.toString());

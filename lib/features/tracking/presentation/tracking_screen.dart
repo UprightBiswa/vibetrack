@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:vibetreck/core/routing/app_routes.dart';
 import 'package:vibetreck/features/tracking/application/tracking_controller.dart';
 
 class TrackingScreen extends ConsumerWidget {
@@ -42,7 +43,7 @@ class TrackingScreen extends ConsumerWidget {
       try {
         final sessionId = await controller.finish();
         if (context.mounted) {
-          context.go('/summary/$sessionId');
+          context.push(AppRoutes.summary(sessionId));
         }
       } catch (error) {
         if (!context.mounted) return;

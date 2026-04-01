@@ -69,7 +69,7 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                         )
                       : const Icon(Icons.chevron_right_rounded),
-                  onTap: () => context.go(AppRoutes.notifications),
+                  onTap: () => context.push(AppRoutes.notifications),
                 ),
                 ListTile(
                   leading: const Icon(Icons.developer_mode_rounded),

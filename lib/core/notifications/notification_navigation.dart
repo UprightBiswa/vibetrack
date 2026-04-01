@@ -10,13 +10,13 @@ void openNotificationTarget(
 }) {
   final trimmedRoute = route.trim();
   if (trimmedRoute.isNotEmpty) {
-    context.go(trimmedRoute);
+    context.push(trimmedRoute);
     return;
   }
 
   final resolvedPostId =
       (payload?['post_id'] ?? payload?['entity_id'] ?? entityId).toString();
   if (resolvedPostId.isNotEmpty && resolvedPostId != 'null') {
-    context.go(AppRoutes.feedPost(resolvedPostId));
+    context.push(AppRoutes.feedPost(resolvedPostId));
   }
 }
