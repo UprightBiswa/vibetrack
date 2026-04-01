@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:vibetreck/core/bloc/view_status.dart';
 import 'package:vibetreck/core/routing/app_routes.dart';
 import 'package:vibetreck/core/theme/app_theme.dart';
 import 'package:vibetreck/features/feed/application/feed_controller.dart';
 import 'package:vibetreck/features/feed/presentation/feed_screen.dart';
-import 'package:vibetreck/features/profile/application/profile_controller.dart';
+import 'package:vibetreck/features/profile/presentation/bloc/current_profile_cubit.dart';
+import 'package:vibetreck/features/profile/presentation/bloc/current_profile_state.dart';
 import 'package:vibetreck/shared/models/feed_post.dart';
 import 'package:vibetreck/shared/models/user_profile.dart';
 import 'package:vibetreck/shared/widgets/app_empty_state.dart';
@@ -18,7 +21,7 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profileAsync = ref.watch(currentProfileProvider);
+    final profileState = context.watch<CurrentProfileCubit>().state;
 
     return Scaffold(
       appBar: AppBar(
@@ -30,86 +33,85 @@ class ProfileScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: profileAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => AppErrorState(
-          message: error.toString(),
-          onRetry: () => ref.invalidate(currentProfileProvider),
-        ),
-        data: (profile) {
-          if (profile == null) {
-            return const AppEmptyState(
-              title: 'Profile unavailable',
-              message: 'Sign in again to load your rider profile.',
-              icon: Icons.person_off_rounded,
-            );
-          }
+      body: switch (profileState.status) {
+        ViewStatus.loading => const Center(child: CircularProgressIndicator()),
+        ViewStatus.failure => AppErrorState(
+            message: profileState.errorMessage ?? 'Failed to load profile',
+            onRetry: () => context.read<CurrentProfileCubit>().refresh(),
+          ),
+        _ => _buildContent(context, ref, profileState.profile),
+      },
+    );
+  }
 
-          final ownFeedAsync = ref.watch(userFeedProvider(profile.id));
-          return ownFeedAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) => AppErrorState(
-              message: error.toString(),
-              onRetry: () => ref.invalidate(feedProvider),
-            ),
-            data: (posts) {
-              final analytics = _ProfileAnalytics.fromPosts(posts);
-              return RefreshIndicator(
-                onRefresh: () async {
-                  ref.invalidate(currentProfileProvider);
-                  ref.invalidate(feedProvider);
-                },
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                  children: [
-                    _ProfileHero(profile: profile, analytics: analytics),
-                    const SizedBox(height: 18),
-                    _AnalyticsGrid(profile: profile, analytics: analytics),
-                    const SizedBox(height: 18),
-                    _SectionHeader(
-                      title: 'Ride Signals',
-                      actionLabel: 'Leaderboard',
-                      onTap: () => context.push(AppRoutes.leaderboard),
-                    ),
-                    const SizedBox(height: 12),
-                    _SignalStrip(profile: profile, analytics: analytics),
-                    const SizedBox(height: 20),
-                    _SectionHeader(
-                      title: 'Own Feed',
-                      actionLabel: 'Global feed',
-                      onTap: () => context.go(AppRoutes.feed),
-                    ),
-                    const SizedBox(height: 12),
-                    if (posts.isEmpty)
-                      const AppEmptyState(
-                        title: 'No rides published yet',
-                        message:
-                            'Finish a session and publish it to start building your public rider profile.',
-                        icon: Icons.directions_bike_outlined,
-                      )
-                    else
-                      ...posts.map(
-                        (post) => Padding(
-                          padding: const EdgeInsets.only(bottom: 14),
-                          child: _OwnPostCard(post: post),
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            },
-          );
-        },
+  Widget _buildContent(BuildContext context, WidgetRef ref, UserProfile? profile) {
+    if (profile == null) {
+      return const AppEmptyState(
+        title: 'Profile unavailable',
+        message: 'Sign in again to load your rider profile.',
+        icon: Icons.person_off_rounded,
+      );
+    }
+
+    final ownFeedAsync = ref.watch(userFeedProvider(profile.id));
+    return ownFeedAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => AppErrorState(
+        message: error.toString(),
+        onRetry: () => ref.invalidate(feedProvider),
       ),
+      data: (posts) {
+        final analytics = _ProfileAnalytics.fromPosts(posts);
+        return RefreshIndicator(
+          onRefresh: () async {
+            await context.read<CurrentProfileCubit>().refresh();
+            ref.invalidate(feedProvider);
+          },
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            children: [
+              _ProfileHero(profile: profile, analytics: analytics),
+              const SizedBox(height: 18),
+              _AnalyticsGrid(profile: profile, analytics: analytics),
+              const SizedBox(height: 18),
+              _SectionHeader(
+                title: 'Ride Signals',
+                actionLabel: 'Leaderboard',
+                onTap: () => context.push(AppRoutes.leaderboard),
+              ),
+              const SizedBox(height: 12),
+              _SignalStrip(profile: profile, analytics: analytics),
+              const SizedBox(height: 20),
+              _SectionHeader(
+                title: 'Own Feed',
+                actionLabel: 'Global feed',
+                onTap: () => context.go(AppRoutes.feed),
+              ),
+              const SizedBox(height: 12),
+              if (posts.isEmpty)
+                const AppEmptyState(
+                  title: 'No rides published yet',
+                  message:
+                      'Finish a session and publish it to start building your public rider profile.',
+                  icon: Icons.directions_bike_outlined,
+                )
+              else
+                ...posts.map(
+                  (post) => Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: _OwnPostCard(post: post),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
 
 class _ProfileHero extends StatelessWidget {
-  const _ProfileHero({
-    required this.profile,
-    required this.analytics,
-  });
+  const _ProfileHero({required this.profile, required this.analytics});
 
   final UserProfile profile;
   final _ProfileAnalytics analytics;
@@ -220,10 +222,7 @@ class _ProfileHero extends StatelessWidget {
 }
 
 class _AnalyticsGrid extends StatelessWidget {
-  const _AnalyticsGrid({
-    required this.profile,
-    required this.analytics,
-  });
+  const _AnalyticsGrid({required this.profile, required this.analytics});
 
   final UserProfile profile;
   final _ProfileAnalytics analytics;
@@ -270,10 +269,7 @@ class _AnalyticsGrid extends StatelessWidget {
 }
 
 class _SignalStrip extends StatelessWidget {
-  const _SignalStrip({
-    required this.profile,
-    required this.analytics,
-  });
+  const _SignalStrip({required this.profile, required this.analytics});
 
   final UserProfile profile;
   final _ProfileAnalytics analytics;
@@ -405,11 +401,7 @@ class _OwnPostCard extends StatelessWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.title,
-    required this.actionLabel,
-    required this.onTap,
-  });
+  const _SectionHeader({required this.title, required this.actionLabel, required this.onTap});
 
   final String title;
   final String actionLabel;
@@ -419,12 +411,7 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(
-          child: Text(
-            title,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-        ),
+        Expanded(child: Text(title, style: Theme.of(context).textTheme.titleLarge)),
         TextButton(onPressed: onTap, child: Text(actionLabel)),
       ],
     );
@@ -495,12 +482,7 @@ class _HeroStat extends StatelessWidget {
 }
 
 class _SignalTile extends StatelessWidget {
-  const _SignalTile({
-    required this.icon,
-    required this.title,
-    required this.value,
-    required this.subtitle,
-  });
+  const _SignalTile({required this.icon, required this.title, required this.value, required this.subtitle});
 
   final IconData icon;
   final String title;
@@ -557,10 +539,7 @@ class _SignalTile extends StatelessWidget {
 }
 
 class _MiniMetricChip extends StatelessWidget {
-  const _MiniMetricChip({
-    required this.label,
-    required this.value,
-  });
+  const _MiniMetricChip({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -585,10 +564,7 @@ class _MiniMetricChip extends StatelessWidget {
 }
 
 class _IconStat extends StatelessWidget {
-  const _IconStat({
-    required this.icon,
-    required this.value,
-  });
+  const _IconStat({required this.icon, required this.value});
 
   final IconData icon;
   final String value;
@@ -600,10 +576,7 @@ class _IconStat extends StatelessWidget {
       children: [
         Icon(icon, size: 18, color: Colors.white60),
         const SizedBox(width: 6),
-        Text(
-          value,
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
+        Text(value, style: Theme.of(context).textTheme.bodyMedium),
       ],
     );
   }

@@ -1,19 +1,19 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:vibetreck/core/providers/repositories.dart';
 import 'package:vibetreck/core/routing/app_routes.dart';
+import 'package:vibetreck/features/auth/presentation/bloc/auth_cubit.dart';
 
-class SplashScreen extends ConsumerStatefulWidget {
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  ConsumerState<SplashScreen> createState() => _SplashScreenState();
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends ConsumerState<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen> {
   Timer? _timer;
 
   @override
@@ -24,9 +24,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   void _routeNext() {
     if (!mounted) return;
-    final authRepository = ref.read(authRepositoryProvider);
-    final isLoggedIn = authRepository.currentUser() != null;
-    context.go(isLoggedIn ? AppRoutes.home : AppRoutes.auth);
+    final authState = context.read<AuthCubit>().state;
+    context.go(authState.isAuthenticated ? AppRoutes.home : AppRoutes.auth);
   }
 
   @override
@@ -37,16 +36,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
+    return const Scaffold(
+      body: DecoratedBox(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [Color(0xFF0B0B0B), Color(0xFF191919)],
           ),
         ),
-        child: const Center(
+        child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:vibetreck/features/profile/application/profile_controller.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:vibetreck/features/profile/presentation/bloc/current_profile_cubit.dart';
+import 'package:vibetreck/features/profile/presentation/bloc/current_profile_state.dart';
+import 'package:vibetreck/core/bloc/view_status.dart';
 
-class EditProfileScreen extends ConsumerStatefulWidget {
+class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
 
   @override
-  ConsumerState<EditProfileScreen> createState() => _EditProfileScreenState();
+  State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
-class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
+class _EditProfileScreenState extends State<EditProfileScreen> {
   final _usernameController = TextEditingController();
   final _cityController = TextEditingController();
   bool _initialized = false;
   bool _saving = false;
-  String? _status;
 
   @override
   void dispose() {
@@ -26,25 +26,41 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final profileAsync = ref.watch(currentProfileProvider);
+    return BlocConsumer<CurrentProfileCubit, CurrentProfileState>(
+      listener: (context, state) {
+        if (_saving && state.status == ViewStatus.success) {
+          _saving = false;
+          Navigator.of(context).pop();
+        }
+        if (state.status == ViewStatus.failure && state.errorMessage != null) {
+          _saving = false;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.errorMessage!)),
+          );
+        }
+      },
+      builder: (context, state) {
+        final profile = state.profile;
+        if (state.status == ViewStatus.loading && profile == null) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (profile == null) {
+          return const Scaffold(
+            body: Center(child: Text('Profile not found')),
+          );
+        }
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Edit Profile')),
-      body: profileAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text(error.toString())),
-        data: (profile) {
-          if (profile == null) {
-            return const Center(child: Text('Profile not found'));
-          }
+        if (!_initialized) {
+          _usernameController.text = profile.username;
+          _cityController.text = profile.homeCity;
+          _initialized = true;
+        }
 
-          if (!_initialized) {
-            _usernameController.text = profile.username;
-            _cityController.text = profile.homeCity;
-            _initialized = true;
-          }
-
-          return ListView(
+        return Scaffold(
+          appBar: AppBar(title: const Text('Edit Profile')),
+          body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
               TextField(
@@ -58,42 +74,23 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: _saving
+                onPressed: state.status == ViewStatus.loading
                     ? null
-                    : () async {
-                        final router = GoRouter.of(context);
-                        setState(() {
-                          _saving = true;
-                          _status = null;
-                        });
-                        try {
-                          await ref.read(profileActionsProvider).updateProfile(
-                            username: _usernameController.text.trim(),
-                            homeCity: _cityController.text.trim(),
-                          );
-                          if (!mounted) {
-                            return;
-                          }
-                          setState(() => _status = 'Profile updated');
-                          router.pop();
-                        } catch (error) {
-                          setState(() => _status = error.toString());
-                        } finally {
-                          if (mounted) {
-                            setState(() => _saving = false);
-                          }
-                        }
+                    : () {
+                        _saving = true;
+                        context.read<CurrentProfileCubit>().updateProfile(
+                              username: _usernameController.text.trim(),
+                              homeCity: _cityController.text.trim(),
+                            );
                       },
-                child: Text(_saving ? 'Saving...' : 'Save Changes'),
+                child: Text(
+                  state.status == ViewStatus.loading ? 'Saving...' : 'Save Changes',
+                ),
               ),
-              if (_status != null) ...[
-                const SizedBox(height: 12),
-                Text(_status!, style: const TextStyle(color: Colors.white70)),
-              ],
             ],
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }

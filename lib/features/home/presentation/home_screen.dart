@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vibetreck/core/routing/app_routes.dart';
 import 'package:vibetreck/core/theme/app_theme.dart';
-import 'package:vibetreck/features/profile/application/profile_controller.dart';
+import 'package:vibetreck/features/profile/presentation/bloc/current_profile_cubit.dart';
 import 'package:vibetreck/features/tracking/application/tracking_controller.dart';
 import 'package:vibetreck/shared/widgets/bento_card.dart';
 
@@ -13,7 +14,7 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profile = ref.watch(currentProfileProvider).asData?.value;
+    final profile = context.watch<CurrentProfileCubit>().state.profile;
     final tracking = ref.watch(trackingControllerProvider);
     final rankLabel = profile?.globalRank != null ? '#${profile!.globalRank}' : '--';
 
