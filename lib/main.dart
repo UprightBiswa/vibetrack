@@ -2,10 +2,12 @@ import 'dart:ui';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibetreck/app.dart';
+import 'package:vibetreck/core/bloc/app_bloc_observer.dart';
 import 'package:vibetreck/core/config/app_env.dart';
 import 'package:vibetreck/core/logging/app_logger.dart';
 import 'package:vibetreck/firebase_options.dart';
@@ -26,6 +28,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  Bloc.observer = AppBlocObserver();
 
   FlutterError.onError = (details) {
     AppLogger.error(
