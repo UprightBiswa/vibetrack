@@ -7,13 +7,12 @@ import 'package:vibetreck/core/routing/app_routes.dart';
 import 'package:vibetreck/core/theme/app_theme.dart';
 import 'package:vibetreck/features/feed/application/feed_controller.dart';
 import 'package:vibetreck/features/feed/presentation/feed_screen.dart';
+import 'package:vibetreck/features/notifications/application/notification_controller.dart';
 import 'package:vibetreck/features/profile/presentation/bloc/current_profile_cubit.dart';
-import 'package:vibetreck/features/profile/presentation/bloc/current_profile_state.dart';
 import 'package:vibetreck/shared/models/feed_post.dart';
 import 'package:vibetreck/shared/models/user_profile.dart';
 import 'package:vibetreck/shared/widgets/app_empty_state.dart';
 import 'package:vibetreck/shared/widgets/app_error_state.dart';
-import 'package:vibetreck/shared/widgets/bento_card.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -21,33 +20,26 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final profileState = context.watch<CurrentProfileCubit>().state;
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-        actions: [
-          IconButton(
-            onPressed: () => context.push(AppRoutes.settings),
-            icon: const Icon(Icons.tune_rounded),
-          ),
-          IconButton(
-            onPressed: () => context.push(AppRoutes.editProfile),
-            icon: const Icon(Icons.edit_rounded),
-          ),
-        ],
-      ),
       body: switch (profileState.status) {
         ViewStatus.loading => const Center(child: CircularProgressIndicator()),
         ViewStatus.failure => AppErrorState(
             message: profileState.errorMessage ?? 'Failed to load profile',
             onRetry: () => context.read<CurrentProfileCubit>().refresh(),
           ),
-        _ => _buildContent(context, profileState.profile),
+        _ => _ProfileBody(profile: profileState.profile),
       },
     );
   }
+}
 
-  Widget _buildContent(BuildContext context, UserProfile? profile) {
+class _ProfileBody extends StatelessWidget {
+  const _ProfileBody({required this.profile});
+
+  final UserProfile? profile;
+
+  @override
+  Widget build(BuildContext context) {
     if (profile == null) {
       return const AppEmptyState(
         title: 'Profile unavailable',
@@ -56,586 +48,357 @@ class ProfileScreen extends StatelessWidget {
       );
     }
 
-    final posts = context.watch<FeedCubit>().postsForUser(profile.id);
-    final analytics = _ProfileAnalytics.fromPosts(posts);
+    final posts = context.watch<FeedCubit>().postsForUser(profile!.id)
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final unreadCount = context.watch<NotificationsCubit>().state.unreadCount;
+    final totalLikes = posts.fold<int>(0, (sum, p) => sum + p.likeCount);
+    final totalComments = posts.fold<int>(0, (sum, p) => sum + p.commentCount);
+    final totalDistance = posts.fold<double>(0, (sum, p) => sum + _num(p.statsJson['distanceKm']));
+    final totalDuration = posts.fold<double>(0, (sum, p) => sum + _num(p.statsJson['durationMin']));
+    final bestRide = posts.fold<double>(0, (best, p) => _num(p.statsJson['distanceKm']) > best ? _num(p.statsJson['distanceKm']) : best);
+    final zoneCount = posts.isEmpty ? 0 : ((totalDistance / 60).round() + 1);
+    final auraLevel = (profile!.auraPoints ~/ 200).clamp(1, 999);
+    final progress = ((profile!.auraPoints % 200) / 200).clamp(0.08, 1.0);
+    final eliteTag = totalDistance >= 800 ? 'ELITE OPS' : totalDistance >= 300 ? 'FIELD CORE' : totalDistance >= 100 ? 'ZONE ACTIVE' : 'RISING NODE';
+
     return RefreshIndicator(
       onRefresh: () async {
         await context.read<CurrentProfileCubit>().refresh();
         await context.read<FeedCubit>().refresh();
       },
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        children: [
-          _ProfileHero(profile: profile, analytics: analytics),
-          const SizedBox(height: 18),
-          _AnalyticsGrid(profile: profile, analytics: analytics),
-          const SizedBox(height: 18),
-          _SectionHeader(
-            title: 'Ride Signals',
-            actionLabel: 'Leaderboard',
-            onTap: () => context.push(AppRoutes.leaderboard),
-          ),
-          const SizedBox(height: 12),
-          _SignalStrip(profile: profile, analytics: analytics),
-          const SizedBox(height: 20),
-          _SectionHeader(
-            title: 'Own Feed',
-            actionLabel: 'Global feed',
-            onTap: () => context.go(AppRoutes.feed),
-          ),
-          const SizedBox(height: 12),
-          if (posts.isEmpty)
-            const AppEmptyState(
-              title: 'No rides published yet',
-              message:
-                  'Finish a session and publish it to start building your public rider profile.',
-              icon: Icons.directions_bike_outlined,
-            )
-          else
-            ...posts.map(
-              (post) => Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: _OwnPostCard(post: post),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProfileHero extends StatelessWidget {
-  const _ProfileHero({required this.profile, required this.analytics});
-
-  final UserProfile profile;
-  final _ProfileAnalytics analytics;
-
-  @override
-  Widget build(BuildContext context) {
-    final rawName = profile.username.trim();
-    final avatarInitial = rawName.isEmpty ? 'R' : rawName.characters.first.toUpperCase();
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: AppTheme.zoneHeroGradient,
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.24)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 140),
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: AppTheme.primary.withValues(alpha: 0.18),
-                child: Text(
-                  avatarInitial,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: Colors.black,
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppTheme.primary, width: 1.5)),
+                child: const Icon(Icons.bolt_rounded, color: AppTheme.primary, size: 20),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 10),
+              Text(
+                'VIBETRACK',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppTheme.primary, fontWeight: FontWeight.w900, letterSpacing: 1.4),
+              ),
+              const Spacer(),
+              _orb(context, icon: Icons.notifications_none_rounded, badge: unreadCount, onTap: () => context.push(AppRoutes.notifications)),
+              const SizedBox(width: 10),
+              _orb(context, icon: Icons.tune_rounded, onTap: () => context.push(AppRoutes.settings)),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      rawName.isEmpty ? 'Rider' : rawName,
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      profile.email ?? 'No email synced',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.white70,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                    Row(
                       children: [
-                        _HeroPill(
-                          label: profile.homeCity.trim().isEmpty
-                              ? 'CITY UNSET'
-                              : profile.homeCity.toUpperCase(),
+                        Flexible(
+                          child: Text(
+                            (profile!.username.trim().isEmpty ? 'RIDER' : profile!.username.trim().toUpperCase()),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w900, fontStyle: FontStyle.italic, height: 0.94),
+                          ),
                         ),
-                        _HeroPill(
-                          label: profile.globalRank != null
-                              ? 'GLOBAL #${profile.globalRank}'
-                              : 'GLOBAL --',
+                        const SizedBox(width: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.secondary.withValues(alpha: 0.16),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: AppTheme.secondary.withValues(alpha: 0.28)),
+                          ),
+                          child: Text(eliteTag, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: AppTheme.secondary, fontWeight: FontWeight.w900, letterSpacing: 1)),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        _miniStat(context, 'Aura Level', 'LVL $auraLevel', AppTheme.primary),
+                        Container(width: 1, height: 44, margin: const EdgeInsets.symmetric(horizontal: 18), color: Colors.white.withValues(alpha: 0.1)),
+                        _miniStat(context, 'Global Rank', profile!.globalRank != null ? '#${profile!.globalRank}' : '--', Colors.white),
                       ],
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 12),
+              ElevatedButton.icon(
+                onPressed: () => context.go(AppRoutes.tracking),
+                icon: const Icon(Icons.bolt_rounded),
+                label: const Text('Activate'),
+              ),
             ],
           ),
           const SizedBox(height: 18),
-          Text(
-            'Own the map with consistent rides, sharp posts, and a stronger aura footprint every week.',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.white70,
-                  height: 1.4,
-                ),
+          Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: const Color(0xFF17171A),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: AppTheme.secondary.withValues(alpha: 0.2)),
+              boxShadow: [BoxShadow(color: AppTheme.secondary.withValues(alpha: 0.12), blurRadius: 30)],
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Aura Points', style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Colors.white54, letterSpacing: 1.4)),
+                  const SizedBox(height: 6),
+                  RichText(
+                    text: TextSpan(children: [
+                      TextSpan(text: _compact(profile!.auraPoints), style: Theme.of(context).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w900, color: Colors.white, height: 1)),
+                      TextSpan(text: ' XP', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white54, fontWeight: FontWeight.w800)),
+                    ]),
+                  ),
+                ])),
+                Container(width: 52, height: 52, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16)), child: const Icon(Icons.auto_awesome_rounded, color: AppTheme.secondary)),
+              ]),
+              const SizedBox(height: 18),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Text('Progress to LVL ${auraLevel + 1}', style: Theme.of(context).textTheme.labelLarge?.copyWith(color: AppTheme.secondary, fontWeight: FontWeight.w800)),
+                Text('${200 - (profile!.auraPoints % 200)} XP left', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white54)),
+              ]),
+              const SizedBox(height: 10),
+              ClipRRect(borderRadius: BorderRadius.circular(999), child: LinearProgressIndicator(value: progress, minHeight: 10, backgroundColor: Colors.white.withValues(alpha: 0.06), color: AppTheme.secondary)),
+              const SizedBox(height: 18),
+              Wrap(spacing: 10, runSpacing: 10, children: [
+                _chip(context, profile!.homeCity.trim().isEmpty ? 'UNASSIGNED CITY' : profile!.homeCity.trim().toUpperCase()),
+                _chip(context, '${posts.length} ARCHIVED POSTS'),
+                _chip(context, '${profile!.currentStreakDays ?? 0} DAY STREAK'),
+              ]),
+            ]),
           ),
           const SizedBox(height: 18),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 14,
+            crossAxisSpacing: 14,
+            childAspectRatio: 1.08,
             children: [
-              _HeroStat(label: 'Aura', value: '${profile.auraPoints}'),
-              _HeroStat(
-                label: 'Distance',
-                value: '${analytics.totalDistanceKm.toStringAsFixed(1)} km',
-              ),
-              _HeroStat(label: 'Posts', value: '${analytics.postCount}'),
-              _HeroStat(
-                label: 'Engagement',
-                value: '${analytics.totalLikes + analytics.totalComments}',
-              ),
+              _statCard(context, 'Zones', '$zoneCount', null, posts.isEmpty ? 'No recent changes' : '+${(posts.length / 2).ceil()} in last 24h', Icons.hexagon_outlined, AppTheme.primary),
+              _statCard(context, 'Distance', totalDistance.toStringAsFixed(0), 'KM', 'All-time tracked', Icons.route_rounded, Colors.white),
+              _statCard(context, 'Ride Time', _durationLabel(totalDuration), null, 'Across published rides', Icons.timer_outlined, AppTheme.secondary),
+              _statCard(context, 'Engagement', '${totalLikes + totalComments}', null, '$totalLikes likes | $totalComments comments', Icons.signal_cellular_alt_rounded, AppTheme.glowSky),
             ],
           ),
+          const SizedBox(height: 22),
+          _sectionHeader(context, 'Flex Feed', 'Global Feed', () => context.go(AppRoutes.feed)),
+          const SizedBox(height: 12),
+          if (posts.isEmpty)
+            const AppEmptyState(
+              title: 'No rides published yet',
+              message: 'Finish and publish a session to turn this profile into a real rider archive.',
+              icon: Icons.auto_awesome_motion_rounded,
+            )
+          else
+            SizedBox(
+              height: 420,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: posts.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 16),
+                itemBuilder: (context, index) => _feedCard(context, posts[index]),
+              ),
+            ),
+          const SizedBox(height: 24),
+          _sectionHeader(context, 'Ride Signals', 'Leaderboard', () => context.push(AppRoutes.leaderboard)),
+          const SizedBox(height: 12),
+          _signalTile(context, Icons.favorite_rounded, 'Post likes', '$totalLikes', 'Total appreciation across your published rides'),
+          const SizedBox(height: 10),
+          _signalTile(context, Icons.mode_comment_rounded, 'Comments received', '$totalComments', 'Conversation generated by your ride archive'),
+          const SizedBox(height: 10),
+          _signalTile(context, Icons.local_fire_department_rounded, 'Best ride', '${bestRide.toStringAsFixed(1)} km', 'Longest distance published from your own feed'),
         ],
       ),
     );
   }
 }
 
-class _AnalyticsGrid extends StatelessWidget {
-  const _AnalyticsGrid({required this.profile, required this.analytics});
-
-  final UserProfile profile;
-  final _ProfileAnalytics analytics;
-
-  @override
-  Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 1.18,
-      children: [
-        BentoCard(
-          title: 'Current Streak',
-          value: '${profile.currentStreakDays ?? 0} days',
-          subtitle: (profile.activeToday ?? false)
-              ? 'Locked in today'
-              : 'Ride today to keep the chain alive',
-          accent: AppTheme.primary,
+Widget _orb(BuildContext context, {required IconData icon, int badge = 0, required VoidCallback onTap}) => InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Stack(clipBehavior: Clip.none, children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(color: const Color(0xFF18191C), borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
+          child: Icon(icon, color: Colors.white),
         ),
-        BentoCard(
-          title: 'Longest Streak',
-          value: '${profile.longestStreakDays ?? 0} days',
-          subtitle: 'Best consistency run',
-          accent: AppTheme.secondary,
-        ),
-        BentoCard(
-          title: 'Total Ride Time',
-          value: analytics.totalDurationLabel,
-          subtitle: 'Across published rides',
-          accent: const Color(0xFF52B6FF),
-        ),
-        BentoCard(
-          title: 'Avg Ride',
-          value: analytics.averageDistanceLabel,
-          subtitle: 'Per published post',
-          accent: const Color(0xFFFF7A59),
-        ),
-      ],
-    );
-  }
-}
-
-class _SignalStrip extends StatelessWidget {
-  const _SignalStrip({required this.profile, required this.analytics});
-
-  final UserProfile profile;
-  final _ProfileAnalytics analytics;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _SignalTile(
-          icon: Icons.favorite_rounded,
-          title: 'Post likes',
-          value: '${analytics.totalLikes}',
-          subtitle: 'Total appreciation across your published rides',
-        ),
-        const SizedBox(height: 10),
-        _SignalTile(
-          icon: Icons.mode_comment_rounded,
-          title: 'Comments received',
-          value: '${analytics.totalComments}',
-          subtitle: 'Conversation generated by your ride posts',
-        ),
-        const SizedBox(height: 10),
-        _SignalTile(
-          icon: Icons.local_fire_department_rounded,
-          title: 'Best ride',
-          value: analytics.bestRideDistanceLabel,
-          subtitle: 'Longest distance published from your own feed',
-        ),
-      ],
-    );
-  }
-}
-
-class _OwnPostCard extends StatelessWidget {
-  const _OwnPostCard({required this.post});
-
-  final FeedPost post;
-
-  @override
-  Widget build(BuildContext context) {
-    final distance = _doubleFrom(post.statsJson['distanceKm']);
-    final duration = _doubleFrom(post.statsJson['durationMin']);
-    final calories = _doubleFrom(post.statsJson['calories']);
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(24),
-      onTap: () => context.push(AppRoutes.feedPost(post.id)),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              AppTheme.surface,
-              Colors.white.withValues(alpha: 0.03),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+        if (badge > 0)
+          Positioned(
+            top: -5,
+            right: -5,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              decoration: BoxDecoration(color: AppTheme.primary, borderRadius: BorderRadius.circular(999)),
+              child: Text(badge > 9 ? '9+' : '$badge', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.black, fontWeight: FontWeight.w900)),
+            ),
           ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppTheme.border.withValues(alpha: 0.75)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              child: SizedBox(
-                height: 220,
-                width: double.infinity,
-                child: PostMedia(post: post, stats: post.statsJson),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          post.caption.isEmpty ? 'Ride completed' : post.caption,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        DateFormat('MMM d').format(post.createdAt),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.white54,
-                            ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      _MiniMetricChip(label: 'Distance', value: '${distance.toStringAsFixed(2)} km'),
-                      _MiniMetricChip(label: 'Duration', value: '${duration.toStringAsFixed(0)} min'),
-                      _MiniMetricChip(label: 'Calories', value: '${calories.toStringAsFixed(0)} kcal'),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      _IconStat(icon: Icons.favorite_rounded, value: '${post.likeCount}'),
-                      const SizedBox(width: 16),
-                      _IconStat(icon: Icons.mode_comment_rounded, value: '${post.commentCount}'),
-                      const Spacer(),
-                      Text(
-                        'Open details',
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              color: AppTheme.primary,
-                            ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+      ]),
     );
-  }
-}
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.actionLabel, required this.onTap});
-
-  final String title;
-  final String actionLabel;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
+Widget _miniStat(BuildContext context, String label, String value, Color accent) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: Text(title, style: Theme.of(context).textTheme.titleLarge)),
+        Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white54, letterSpacing: 1.1)),
+        const SizedBox(height: 2),
+        Text(value, style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: accent, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic)),
+      ],
+    );
+
+Widget _chip(BuildContext context, String label) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(999), border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
+      child: Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white70, fontWeight: FontWeight.w800, letterSpacing: 0.8)),
+    );
+
+Widget _statCard(BuildContext context, String title, String value, String? unit, String footer, IconData icon, Color accent) => Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: const Color(0xFF17181B), borderRadius: BorderRadius.circular(22), border: Border.all(color: Colors.white.withValues(alpha: 0.05))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [Expanded(child: Text(title.toUpperCase(), style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Colors.white54, letterSpacing: 1.3))), Icon(icon, color: accent, size: 28)]),
+        const Spacer(),
+        Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Flexible(child: Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w900, fontStyle: FontStyle.italic, height: 1))),
+          if (unit != null) ...[const SizedBox(width: 6), Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(unit, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white54, fontWeight: FontWeight.w900)))],
+        ]),
+        const SizedBox(height: 8),
+        Text(footer, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: accent == Colors.white ? Colors.white54 : accent, fontWeight: FontWeight.w700)),
+      ]),
+    );
+
+Widget _sectionHeader(BuildContext context, String title, String actionLabel, VoidCallback onTap) => Row(
+      children: [
+        Text(title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900, fontStyle: FontStyle.italic)),
+        const SizedBox(width: 12),
+        Container(width: 44, height: 2, color: AppTheme.primary),
+        const Spacer(),
         TextButton(onPressed: onTap, child: Text(actionLabel)),
       ],
     );
-  }
-}
-
-class _HeroPill extends StatelessWidget {
-  const _HeroPill({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: Colors.white70,
-              letterSpacing: 0.8,
-            ),
-      ),
-    );
-  }
-}
-
-class _HeroStat extends StatelessWidget {
-  const _HeroStat({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 110,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Colors.white60,
-                ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SignalTile extends StatelessWidget {
-  const _SignalTile({required this.icon, required this.title, required this.value, required this.subtitle});
-
-  final IconData icon;
-  final String title;
-  final String value;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.surface.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppTheme.border.withValues(alpha: 0.85)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 46,
-            height: 46,
+Widget _feedCard(BuildContext context, FeedPost post) {
+  final distance = _num(post.statsJson['distanceKm']);
+  final duration = _num(post.statsJson['durationMin']);
+  final speed = _speed(post);
+  return InkWell(
+    borderRadius: BorderRadius.circular(24),
+    onTap: () => context.push(AppRoutes.feedPost(post.id)),
+    child: SizedBox(
+      width: 320,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(fit: StackFit.expand, children: [
+          PostMedia(post: post, stats: post.statsJson),
+          DecoratedBox(
             decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: AppTheme.primary),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white60,
-                      ),
-                ),
-              ],
+              gradient: LinearGradient(
+                colors: [Colors.black.withValues(alpha: 0.82), Colors.black.withValues(alpha: 0.18), Colors.black.withValues(alpha: 0.84)],
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+              ),
             ),
           ),
-          const SizedBox(width: 12),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppTheme.primary,
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    if (speed != null) _overlay(context, Icons.speed_rounded, '${speed.toStringAsFixed(1)} km/h', AppTheme.primary),
+                    const SizedBox(height: 8),
+                    _overlay(context, Icons.favorite_rounded, '${post.likeCount} likes', AppTheme.secondary),
+                  ]),
                 ),
+                Text(DateFormat('MMM d').format(post.createdAt), style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white70)),
+              ]),
+              const Spacer(),
+              Text(_zone(post), style: Theme.of(context).textTheme.labelMedium?.copyWith(color: AppTheme.primary, fontWeight: FontWeight.w900, letterSpacing: 0.9)),
+              const SizedBox(height: 10),
+              Text(
+                post.caption.isEmpty ? 'Ride completed and synced to archive.' : post.caption,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900, fontStyle: FontStyle.italic, height: 1.05),
+              ),
+              const SizedBox(height: 14),
+              Row(children: [
+                _statFoot(context, Icons.thumb_up_alt_outlined, '${post.likeCount}'),
+                const SizedBox(width: 16),
+                _statFoot(context, Icons.chat_bubble_outline_rounded, '${post.commentCount}'),
+                const Spacer(),
+                Text('${distance.toStringAsFixed(1)} km | ${duration.toStringAsFixed(0)} min', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white70)),
+              ]),
+            ]),
           ),
-        ],
+        ]),
       ),
-    );
-  }
+    ),
+  );
 }
 
-class _MiniMetricChip extends StatelessWidget {
-  const _MiniMetricChip({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
+Widget _overlay(BuildContext context, IconData icon, String label, Color accent) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Text(
-        '$label  $value',
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Colors.white70,
-            ),
-      ),
+      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.36), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.1))),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, color: accent, size: 16), const SizedBox(width: 6), Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w800))]),
     );
-  }
-}
 
-class _IconStat extends StatelessWidget {
-  const _IconStat({required this.icon, required this.value});
-
-  final IconData icon;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 18, color: Colors.white60),
-        const SizedBox(width: 6),
-        Text(value, style: Theme.of(context).textTheme.bodyMedium),
-      ],
+Widget _statFoot(BuildContext context, IconData icon, String value) => Row(
+      children: [Icon(icon, size: 18, color: Colors.white), const SizedBox(width: 6), Text(value, style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w800))],
     );
-  }
-}
 
-class _ProfileAnalytics {
-  const _ProfileAnalytics({
-    required this.postCount,
-    required this.totalLikes,
-    required this.totalComments,
-    required this.totalDistanceKm,
-    required this.totalDurationMin,
-    required this.totalCalories,
-    required this.bestRideDistanceKm,
-  });
-
-  final int postCount;
-  final int totalLikes;
-  final int totalComments;
-  final double totalDistanceKm;
-  final double totalDurationMin;
-  final double totalCalories;
-  final double bestRideDistanceKm;
-
-  String get totalDurationLabel {
-    final totalMinutes = totalDurationMin.round();
-    final hours = totalMinutes ~/ 60;
-    final minutes = totalMinutes % 60;
-    if (hours == 0) return '${minutes}m';
-    return '${hours}h ${minutes}m';
-  }
-
-  String get averageDistanceLabel {
-    if (postCount == 0) return '0.0 km';
-    return '${(totalDistanceKm / postCount).toStringAsFixed(1)} km';
-  }
-
-  String get bestRideDistanceLabel => '${bestRideDistanceKm.toStringAsFixed(1)} km';
-
-  factory _ProfileAnalytics.fromPosts(List<FeedPost> posts) {
-    var likes = 0;
-    var comments = 0;
-    var distance = 0.0;
-    var duration = 0.0;
-    var calories = 0.0;
-    var bestRide = 0.0;
-
-    for (final post in posts) {
-      likes += post.likeCount;
-      comments += post.commentCount;
-      final rideDistance = _doubleFrom(post.statsJson['distanceKm']);
-      distance += rideDistance;
-      duration += _doubleFrom(post.statsJson['durationMin']);
-      calories += _doubleFrom(post.statsJson['calories']);
-      if (rideDistance > bestRide) {
-        bestRide = rideDistance;
-      }
-    }
-
-    return _ProfileAnalytics(
-      postCount: posts.length,
-      totalLikes: likes,
-      totalComments: comments,
-      totalDistanceKm: distance,
-      totalDurationMin: duration,
-      totalCalories: calories,
-      bestRideDistanceKm: bestRide,
+Widget _signalTile(BuildContext context, IconData icon, String title, String value, String subtitle) => Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFF15171B), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white.withValues(alpha: 0.05))),
+      child: Row(children: [
+        Container(width: 46, height: 46, decoration: BoxDecoration(color: AppTheme.primary.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(14)), child: Icon(icon, color: AppTheme.primary)),
+        const SizedBox(width: 14),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: Theme.of(context).textTheme.titleMedium), const SizedBox(height: 2), Text(subtitle, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white60))])),
+        const SizedBox(width: 12),
+        Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppTheme.primary)),
+      ]),
     );
-  }
-}
 
-double _doubleFrom(Object? value) {
+double _num(Object? value) {
   if (value == null) return 0;
   if (value is num) return value.toDouble();
   return double.tryParse(value.toString()) ?? 0;
+}
+
+double? _speed(FeedPost post) {
+  final distanceKm = _num(post.statsJson['distanceKm']);
+  final durationMin = _num(post.statsJson['durationMin']);
+  if (distanceKm <= 0 || durationMin <= 0) return null;
+  return distanceKm / (durationMin / 60);
+}
+
+String _zone(FeedPost post) {
+  final caption = post.caption.trim();
+  if (caption.isEmpty) return 'RIDE ARCHIVE';
+  final words = caption.split(RegExp(r'\s+')).where((word) => word.isNotEmpty).take(3);
+  return words.isEmpty ? 'RIDE ARCHIVE' : words.join(' ').toUpperCase();
+}
+
+String _compact(int value) {
+  if (value >= 1000) {
+    final compact = value / 1000;
+    return compact % 1 == 0 ? '${compact.toStringAsFixed(0)}K' : '${compact.toStringAsFixed(1)}K';
+  }
+  return '$value';
+}
+
+String _durationLabel(double totalDuration) {
+  final totalMinutes = totalDuration.round();
+  final hours = totalMinutes ~/ 60;
+  final minutes = totalMinutes % 60;
+  if (hours == 0) return '${minutes}M';
+  return '${hours}H ${minutes}M';
 }
