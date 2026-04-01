@@ -55,6 +55,21 @@ class ActivitySession {
     'calories': calories,
     'route_geojson': routeGeojson,
   };
+
+  List<List<double>> get routeCoordinates {
+    final raw = routeGeojson['coordinates'];
+    if (raw is! List) return const [];
+    return raw
+        .whereType<List>()
+        .map(
+          (point) => point
+              .whereType<num>()
+              .map((value) => value.toDouble())
+              .toList(growable: false),
+        )
+        .where((point) => point.length >= 2)
+        .toList(growable: false);
+  }
 }
 
 ActivityType _activityFromString(String value) {

@@ -5,6 +5,7 @@ import 'package:vibetreck/shared/models/activity_session.dart';
 abstract class SessionRepository {
   Future<ActivitySession> createSession(ActivitySession session);
   Future<ActivitySession?> getSession(String sessionId);
+  Future<List<ActivitySession>> listSessions();
 }
 
 class ApiSessionRepository implements SessionRepository {
@@ -47,6 +48,23 @@ class ApiSessionRepository implements SessionRepository {
       rethrow;
     }
   }
+
+  @override
+  Future<List<ActivitySession>> listSessions() async {
+    try {
+      final response = await _dio.get<List<dynamic>>('/api/v1/rides/sessions/mine');
+      final rows = response.data ?? const [];
+      return rows
+          .whereType<Map<String, dynamic>>()
+          .map(ActivitySession.fromJson)
+          .toList(growable: false);
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 404) {
+        return const [];
+      }
+      rethrow;
+    }
+  }
 }
 
 class SupabaseSessionRepository implements SessionRepository {
@@ -73,6 +91,18 @@ class SupabaseSessionRepository implements SessionRepository {
     if (response == null) return null;
     return ActivitySession.fromJson(response);
   }
+
+  @override
+  Future<List<ActivitySession>> listSessions() async {
+    final response = await _client
+        .from('sessions')
+        .select()
+        .order('started_at', ascending: false);
+    return (response as List)
+        .whereType<Map<String, dynamic>>()
+        .map(ActivitySession.fromJson)
+        .toList(growable: false);
+  }
 }
 
 class LocalSessionRepository implements SessionRepository {
@@ -87,4 +117,11 @@ class LocalSessionRepository implements SessionRepository {
   @override
   Future<ActivitySession?> getSession(String sessionId) async =>
       _store[sessionId];
+
+  @override
+  Future<List<ActivitySession>> listSessions() async {
+    final sessions = _store.values.toList(growable: false)
+      ..sort((a, b) => b.startedAt.compareTo(a.startedAt));
+    return sessions;
+  }
 }

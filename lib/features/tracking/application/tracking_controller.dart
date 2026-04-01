@@ -17,6 +17,9 @@ class TrackingState {
     required this.distanceM,
     required this.durationS,
     required this.avgSpeedMps,
+    required this.currentSpeedMps,
+    required this.elevationGainM,
+    required this.selectedType,
     this.startedAt,
     this.lastSessionId,
     this.lastAuraAwarded = 0,
@@ -28,6 +31,9 @@ class TrackingState {
   final double distanceM;
   final int durationS;
   final double avgSpeedMps;
+  final double currentSpeedMps;
+  final double elevationGainM;
+  final ActivityType selectedType;
   final DateTime? startedAt;
   final String? lastSessionId;
   final int lastAuraAwarded;
@@ -39,6 +45,9 @@ class TrackingState {
     double? distanceM,
     int? durationS,
     double? avgSpeedMps,
+    double? currentSpeedMps,
+    double? elevationGainM,
+    ActivityType? selectedType,
     DateTime? startedAt,
     String? lastSessionId,
     int? lastAuraAwarded,
@@ -50,6 +59,9 @@ class TrackingState {
       distanceM: distanceM ?? this.distanceM,
       durationS: durationS ?? this.durationS,
       avgSpeedMps: avgSpeedMps ?? this.avgSpeedMps,
+      currentSpeedMps: currentSpeedMps ?? this.currentSpeedMps,
+      elevationGainM: elevationGainM ?? this.elevationGainM,
+      selectedType: selectedType ?? this.selectedType,
       startedAt: startedAt ?? this.startedAt,
       lastSessionId: lastSessionId ?? this.lastSessionId,
       lastAuraAwarded: lastAuraAwarded ?? this.lastAuraAwarded,
@@ -63,6 +75,9 @@ class TrackingState {
     distanceM: 0,
     durationS: 0,
     avgSpeedMps: 0,
+    currentSpeedMps: 0,
+    elevationGainM: 0,
+    selectedType: ActivityType.cycle,
   );
 }
 
@@ -82,7 +97,12 @@ class TrackingCubit extends Cubit<TrackingState> {
   StreamSubscription<Position>? _positionSub;
   Timer? _ticker;
 
-  Future<void> start() async {
+  void selectActivityType(ActivityType type) {
+    if (state.running) return;
+    emit(state.copyWith(selectedType: type));
+  }
+
+  Future<void> start({ActivityType? type}) async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       throw Exception('Location service is disabled. Enable GPS and retry.');
@@ -105,6 +125,7 @@ class TrackingCubit extends Cubit<TrackingState> {
       TrackingState.initial.copyWith(
         running: true,
         startedAt: DateTime.now(),
+        selectedType: type ?? state.selectedType,
       ),
     );
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -128,19 +149,26 @@ class TrackingCubit extends Cubit<TrackingState> {
 
   void _onPosition(Position point) {
     if (!state.running || state.paused) return;
+    final previousPoint = state.points.isEmpty ? null : state.points.last;
     final next = List<Position>.from(state.points)..add(point);
     final distance = _calculateDistance(next);
     final duration = max(state.durationS, 1);
+    final currentSpeed = point.speed > 0 ? point.speed : state.currentSpeedMps;
+    final elevationGain = previousPoint == null
+        ? state.elevationGainM
+        : state.elevationGainM + max(0, point.altitude - previousPoint.altitude);
     emit(
       state.copyWith(
         points: next,
         distanceM: distance,
         avgSpeedMps: distance / duration,
+        currentSpeedMps: currentSpeed,
+        elevationGainM: elevationGain,
       ),
     );
   }
 
-  Future<String> finish({ActivityType type = ActivityType.cycle}) async {
+  Future<String> finish() async {
     final user = _authCubit.state.user;
     if (user == null) {
       throw Exception('User is not authenticated');
@@ -157,7 +185,7 @@ class TrackingCubit extends Cubit<TrackingState> {
     final session = ActivitySession(
       id: sessionId,
       userId: user.id,
-      type: type,
+      type: state.selectedType,
       startedAt: startedAt,
       endedAt: endedAt,
       distanceM: state.distanceM,
@@ -171,9 +199,8 @@ class TrackingCubit extends Cubit<TrackingState> {
     await _positionSub?.cancel();
     _ticker?.cancel();
     emit(
-      state.copyWith(
-        running: false,
-        paused: false,
+      TrackingState.initial.copyWith(
+        selectedType: state.selectedType,
         lastSessionId: sessionId,
         lastAuraAwarded: aura,
       ),

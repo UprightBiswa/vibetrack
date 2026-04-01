@@ -48,6 +48,15 @@ async def finish_ride(
     return RideSummary.model_validate(ride)
 
 
+@router.get('/sessions/mine', response_model=list[RideSummary])
+async def list_my_rides(
+    user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> list[RideSummary]:
+    rides = await RideService(session).list_rides(user)
+    return [RideSummary.model_validate(ride) for ride in rides]
+
+
 @router.get('/sessions/{session_id}', response_model=RideSummary)
 async def get_ride_session(
     session_id: str,
@@ -58,12 +67,3 @@ async def get_ride_session(
     if ride is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Ride session not found')
     return RideSummary.model_validate(ride)
-
-
-@router.get('/sessions/mine', response_model=list[RideSummary])
-async def list_my_rides(
-    user: CurrentUser = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db_session),
-) -> list[RideSummary]:
-    rides = await RideService(session).list_rides(user)
-    return [RideSummary.model_validate(ride) for ride in rides]
