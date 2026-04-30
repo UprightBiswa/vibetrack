@@ -25,14 +25,21 @@
   final String username;
   final bool likedByMe;
 
-  FeedPost copyWith({int? likeCount, int? commentCount, bool? likedByMe}) {
+  FeedPost copyWith({
+    String? imageUrl,
+    String? caption,
+    Map<String, dynamic>? statsJson,
+    int? likeCount,
+    int? commentCount,
+    bool? likedByMe,
+  }) {
     return FeedPost(
       id: id,
       userId: userId,
       sessionId: sessionId,
-      imageUrl: imageUrl,
-      caption: caption,
-      statsJson: statsJson,
+      imageUrl: imageUrl ?? this.imageUrl,
+      caption: caption ?? this.caption,
+      statsJson: statsJson ?? this.statsJson,
       createdAt: createdAt,
       likeCount: likeCount ?? this.likeCount,
       commentCount: commentCount ?? this.commentCount,

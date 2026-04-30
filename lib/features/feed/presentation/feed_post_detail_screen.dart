@@ -8,12 +8,14 @@ import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:vibetreck/core/bloc/view_status.dart';
+import 'package:vibetreck/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:vibetreck/core/di/app_services.dart';
 import 'package:vibetreck/core/network/network_status_provider.dart';
 import 'package:vibetreck/core/routing/app_routes.dart';
 import 'package:vibetreck/core/theme/app_theme.dart';
 import 'package:vibetreck/features/feed/application/feed_controller.dart';
 import 'package:vibetreck/features/feed/presentation/feed_screen.dart';
+import 'package:vibetreck/shared/models/feed_post.dart';
 import 'package:vibetreck/shared/widgets/app_error_state.dart';
 import 'package:vibetreck/shared/widgets/route_snapshot_card.dart';
 
@@ -85,6 +87,78 @@ class _FeedPostDetailScreenState extends State<FeedPostDetailScreen> {
     }
   }
 
+  Future<void> _editPost(BuildContext context, FeedPostDetailCubit cubit, FeedPost post) async {
+    final stats = Map<String, dynamic>.from(post.statsJson);
+    final titleController = TextEditingController(text: (stats['title'] ?? '').toString());
+    final captionController = TextEditingController(text: (stats['details'] ?? post.caption).toString());
+    final locationController = TextEditingController(text: (stats['locationLabel'] ?? '').toString());
+    final tagsController = TextEditingController(text: (((stats['tags'] as List?) ?? const []).join(', ')).toString());
+    final updated = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF17181B),
+      builder: (context) => Padding(
+        padding: EdgeInsets.fromLTRB(16, 20, 16, MediaQuery.of(context).viewInsets.bottom + 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Edit Post', style: Theme.of(context).textTheme.headlineSmall),
+            const SizedBox(height: 16),
+            TextField(controller: titleController, decoration: const InputDecoration(hintText: 'Title')),
+            const SizedBox(height: 12),
+            TextField(controller: captionController, minLines: 3, maxLines: 5, decoration: const InputDecoration(hintText: 'Caption')),
+            const SizedBox(height: 12),
+            TextField(controller: locationController, decoration: const InputDecoration(hintText: 'Location label')),
+            const SizedBox(height: 12),
+            TextField(controller: tagsController, decoration: const InputDecoration(hintText: 'Tags comma separated')),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () async {
+                  final nextStats = Map<String, dynamic>.from(stats);
+                  nextStats['title'] = titleController.text.trim();
+                  nextStats['details'] = captionController.text.trim();
+                  nextStats['locationLabel'] = locationController.text.trim();
+                  nextStats['tags'] = tagsController.text.split(',').map((tag) => tag.trim()).where((tag) => tag.isNotEmpty).toList(growable: false);
+                  await cubit.updatePost(post.copyWith(caption: captionController.text.trim(), statsJson: nextStats));
+                  if (context.mounted) Navigator.of(context).pop(true);
+                },
+                child: const Text('Save Changes'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    titleController.dispose();
+    captionController.dispose();
+    locationController.dispose();
+    tagsController.dispose();
+    if (updated == true && mounted) {
+      setState(() => _status = 'Post updated');
+    }
+  }
+
+  Future<void> _deletePost(BuildContext context, FeedPostDetailCubit cubit) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete post?'),
+        content: const Text('This removes your flex post from feed.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await cubit.deletePost();
+    if (!mounted) return;
+    context.go(AppRoutes.feed);
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -130,6 +204,11 @@ class _FeedPostDetailScreenState extends State<FeedPostDetailScreen> {
     final details = (stats['details'] ?? post.caption).toString();
     final routeGeojson = (stats['routeGeojson'] as Map<String, dynamic>?) ?? const {};
     final cubit = context.read<FeedPostDetailCubit>();
+    final currentUser = context.read<AuthCubit>().state.user;
+    final isOwner = currentUser?.id == post.userId;
+    final locationLabel = (stats['locationLabel'] ?? '').toString().trim();
+    final zoneLabel = (stats['zoneLabel'] ?? '').toString().trim();
+    final tags = ((stats['tags'] as List?) ?? const []).map((item) => item.toString()).where((item) => item.trim().isNotEmpty).toList(growable: false);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
@@ -181,13 +260,28 @@ class _FeedPostDetailScreenState extends State<FeedPostDetailScreen> {
                 ),
               ),
               const Spacer(),
-              IconButton(
-                onPressed: cubit.toggleLike,
-                icon: Icon(
-                  post.likedByMe ? Icons.favorite : Icons.favorite_border,
-                  color: post.likedByMe ? Colors.redAccent : Colors.white70,
+              if (isOwner)
+                PopupMenuButton<String>(
+                  onSelected: (value) async {
+                    if (value == 'edit') {
+                      await _editPost(context, cubit, post);
+                    } else if (value == 'delete') {
+                      await _deletePost(context, cubit);
+                    }
+                  },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(value: 'edit', child: Text('Edit Post')),
+                    PopupMenuItem(value: 'delete', child: Text('Delete Post')),
+                  ],
+                )
+              else
+                IconButton(
+                  onPressed: cubit.toggleLike,
+                  icon: Icon(
+                    post.likedByMe ? Icons.favorite : Icons.favorite_border,
+                    color: post.likedByMe ? Colors.redAccent : Colors.white70,
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -231,6 +325,18 @@ class _FeedPostDetailScreenState extends State<FeedPostDetailScreen> {
                         color: Colors.white70,
                         height: 1.5,
                       ),
+                ),
+              ],
+              if (locationLabel.isNotEmpty || zoneLabel.isNotEmpty || tags.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    if (locationLabel.isNotEmpty) _MetricMetaChip(icon: Icons.place_outlined, label: locationLabel),
+                    if (zoneLabel.isNotEmpty) _MetricMetaChip(icon: Icons.shield_outlined, label: zoneLabel),
+                    ...tags.map((tag) => _MetricMetaChip(icon: Icons.sell_outlined, label: '#$tag')),
+                  ],
                 ),
               ],
               const SizedBox(height: 16),
@@ -282,6 +388,12 @@ class _FeedPostDetailScreenState extends State<FeedPostDetailScreen> {
                   label: 'SHARE ROUTE',
                   height: 180,
                 ),
+                const SizedBox(height: 12),
+                Text(title.isEmpty ? 'Route Flex' : title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                if (locationLabel.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(locationLabel, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70)),
+                ],
               ],
             ),
           ),
@@ -394,6 +506,32 @@ class _FeedPostDetailScreenState extends State<FeedPostDetailScreen> {
             }).toList(),
           ),
       ],
+    );
+  }
+}
+
+class _MetricMetaChip extends StatelessWidget {
+  const _MetricMetaChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppTheme.primary),
+          const SizedBox(width: 6),
+          Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white70, fontWeight: FontWeight.w700)),
+        ],
+      ),
     );
   }
 }

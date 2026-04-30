@@ -94,6 +94,18 @@ class FeedCubit extends Cubit<FeedState> {
     await load();
   }
 
+  Future<void> updatePost(FeedPost post) async {
+    _ensureOnline();
+    await _repository.updatePost(post);
+    await load();
+  }
+
+  Future<void> deletePost(String postId) async {
+    _ensureOnline();
+    await _repository.deletePost(postId);
+    await load();
+  }
+
   Future<void> toggleLike(String postId) async {
     _ensureOnline();
     final updated = await _repository.likePost(postId);
@@ -179,6 +191,19 @@ class FeedPostDetailCubit extends Cubit<FeedPostDetailState> {
     } catch (error) {
       emit(state.copyWith(status: ViewStatus.failure, errorMessage: error.toString()));
     }
+  }
+
+  Future<void> updatePost(FeedPost post) async {
+    _ensureOnline();
+    final updated = await _repository.updatePost(post);
+    emit(state.copyWith(post: updated));
+    await _feedCubit.load();
+  }
+
+  Future<void> deletePost() async {
+    _ensureOnline();
+    await _repository.deletePost(_postId);
+    await _feedCubit.load();
   }
 
   Future<void> toggleLike() async {

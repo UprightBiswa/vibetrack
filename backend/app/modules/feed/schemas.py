@@ -14,6 +14,12 @@ class CreateFeedCommentRequest(BaseModel):
     body: str = Field(min_length=1, max_length=1000)
 
 
+class UpdateFeedPostRequest(BaseModel):
+    caption: str = Field(default='', max_length=2000)
+    image_url: str = Field(default='', max_length=512)
+    stats_json: dict = Field(default_factory=dict)
+
+
 class FeedCommentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

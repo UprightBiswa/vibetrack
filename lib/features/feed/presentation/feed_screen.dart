@@ -73,6 +73,12 @@ class _FeedPostCard extends StatelessWidget {
     final distance = (post.statsJson['distanceKm'] ?? '-').toString();
     final avgSpeed = (post.statsJson['avgSpeedKmh'] ?? '').toString();
     final elevation = (post.statsJson['elevationM'] ?? '').toString();
+    final locationLabel = (post.statsJson['locationLabel'] ?? '').toString().trim();
+    final zoneLabel = (post.statsJson['zoneLabel'] ?? '').toString().trim();
+    final tags = ((post.statsJson['tags'] as List?) ?? const [])
+        .map((item) => item.toString())
+        .where((item) => item.trim().isNotEmpty)
+        .toList(growable: false);
 
     return Container(
       decoration: BoxDecoration(
@@ -196,6 +202,18 @@ class _FeedPostCard extends StatelessWidget {
                         ),
                   ),
                 ],
+                if (locationLabel.isNotEmpty || zoneLabel.isNotEmpty || tags.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (locationLabel.isNotEmpty) _MetaChip(icon: Icons.place_outlined, label: locationLabel),
+                      if (zoneLabel.isNotEmpty) _MetaChip(icon: Icons.shield_outlined, label: zoneLabel),
+                      ...tags.take(3).map((tag) => _MetaChip(icon: Icons.sell_outlined, label: '#$tag')),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 14),
                 Row(
                   children: [
@@ -315,6 +333,38 @@ class FallbackCard extends StatelessWidget {
           fontWeight: FontWeight.w900,
           fontSize: 34,
         ),
+      ),
+    );
+  }
+}
+
+class _MetaChip extends StatelessWidget {
+  const _MetaChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppTheme.primary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+        ],
       ),
     );
   }

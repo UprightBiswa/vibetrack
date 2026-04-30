@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibetreck/shared/models/feed_comment.dart';
 import 'package:vibetreck/shared/models/feed_post.dart';
@@ -8,6 +8,8 @@ abstract class FeedRepository {
   Future<FeedPost> fetchPost(String postId);
   Future<List<FeedComment>> fetchComments(String postId);
   Future<void> createPost(FeedPost post);
+  Future<FeedPost> updatePost(FeedPost post);
+  Future<void> deletePost(String postId);
   Future<FeedComment> addComment(String postId, String body);
   Future<FeedPost> likePost(String postId);
 }
@@ -50,6 +52,24 @@ class ApiFeedRepository implements FeedRepository {
         'stats_json': post.statsJson,
       },
     );
+  }
+
+  @override
+  Future<FeedPost> updatePost(FeedPost post) async {
+    final response = await _dio.put<Map<String, dynamic>>(
+      '/api/v1/feed/posts/${post.id}',
+      data: {
+        'caption': post.caption,
+        'image_url': post.imageUrl,
+        'stats_json': post.statsJson,
+      },
+    );
+    return FeedPost.fromJson(response.data ?? <String, dynamic>{});
+  }
+
+  @override
+  Future<void> deletePost(String postId) async {
+    await _dio.delete<void>('/api/v1/feed/posts/$postId');
   }
 
   @override
@@ -115,6 +135,26 @@ class SupabaseFeedRepository implements FeedRepository {
   }
 
   @override
+  Future<FeedPost> updatePost(FeedPost post) async {
+    final updated = await _client
+        .from('posts')
+        .update({
+          'caption': post.caption,
+          'image_url': post.imageUrl,
+          'stats_json': post.statsJson,
+        })
+        .eq('id', post.id)
+        .select('*, profiles(username)')
+        .single();
+    return FeedPost.fromJson(updated);
+  }
+
+  @override
+  Future<void> deletePost(String postId) async {
+    await _client.from('posts').delete().eq('id', postId);
+  }
+
+  @override
   Future<FeedComment> addComment(String postId, String body) async {
     final created = await _client
         .from('post_comments')
@@ -171,6 +211,20 @@ class LocalFeedRepository implements FeedRepository {
   @override
   Future<void> createPost(FeedPost post) async {
     _items.insert(0, post);
+  }
+
+  @override
+  Future<FeedPost> updatePost(FeedPost post) async {
+    final index = _items.indexWhere((item) => item.id == post.id);
+    if (index < 0) throw StateError('Post not found');
+    _items[index] = post;
+    return _items[index];
+  }
+
+  @override
+  Future<void> deletePost(String postId) async {
+    _items.removeWhere((item) => item.id == postId);
+    _comments.remove(postId);
   }
 
   @override

@@ -8,6 +8,7 @@ from app.modules.feed.schemas import (
     CreateFeedPostRequest,
     FeedCommentResponse,
     FeedPostResponse,
+    UpdateFeedPostRequest,
 )
 from app.modules.feed.service import FeedService
 
@@ -62,6 +63,38 @@ async def create_feed_post(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return await service.to_response(post, user)
+
+
+@router.put('/posts/{post_id}', response_model=FeedPostResponse)
+async def update_feed_post(
+    post_id: str,
+    request: UpdateFeedPostRequest,
+    user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> FeedPostResponse:
+    service = FeedService(session)
+    try:
+        post = await service.update_post(post_id, user, request)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    return await service.to_response(post, user)
+
+
+@router.delete('/posts/{post_id}', status_code=status.HTTP_204_NO_CONTENT)
+async def delete_feed_post(
+    post_id: str,
+    user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> None:
+    service = FeedService(session)
+    try:
+        await service.delete_post(post_id, user)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
 
 
 @router.post('/posts/{post_id}/comments', response_model=FeedCommentResponse)

@@ -196,6 +196,15 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
           if (session == null) {
             return const Center(child: Text('Session not found'));
           }
+          if (_locationController.text.isEmpty) {
+            final suggestedLocation = _autoLocationLabel(session);
+            if (suggestedLocation.isNotEmpty) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted || _locationController.text.isNotEmpty) return;
+                _locationController.text = suggestedLocation;
+              });
+            }
+          }
           final effectiveElevation = trackingState.lastSessionId == widget.sessionId
               ? trackingState.elevationGainM
               : 0.0;
@@ -285,14 +294,15 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
                       icon: const Icon(Icons.photo_camera_outlined),
                       label: const Text('Take photo'),
                     ),
-                    TextButton.icon(
-                      onPressed: _pickingMedia
-                          ? null
-                          : () => setState(() => _selectedMediaBytes = null),
-                      icon: const Icon(Icons.map_outlined),
-                      label: const Text('Use route card'),
-                    ),
                   ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Route card is always included first. Added media appears after the route in feed posts.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.white54,
+                        height: 1.4,
+                      ),
                 ),
                 const SizedBox(height: 18),
                 _StaticRoutePreview(
@@ -405,6 +415,15 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     if (km >= 10) return 'Zone Breaker';
     if (km >= 5) return 'Zone Push';
     return 'Zone Start';
+  }
+
+  String _autoLocationLabel(ActivitySession session) {
+    final coordinates = session.routeCoordinates;
+    if (coordinates.isEmpty) return '';
+    final first = coordinates.first;
+    final last = coordinates.last;
+    return 'Route area ${first[1].toStringAsFixed(3)}, ${first[0].toStringAsFixed(3)}'
+        ' → ${last[1].toStringAsFixed(3)}, ${last[0].toStringAsFixed(3)}';
   }
 }
 

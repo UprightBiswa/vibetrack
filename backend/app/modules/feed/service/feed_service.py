@@ -10,6 +10,7 @@ from app.modules.feed.schemas import (
     CreateFeedPostRequest,
     FeedCommentResponse,
     FeedPostResponse,
+    UpdateFeedPostRequest,
 )
 from app.modules.notifications.service import NotificationService
 from app.modules.profiles.models import Profile
@@ -69,6 +70,35 @@ class FeedService:
         await self.session.commit()
         await self.session.refresh(post)
         return post
+
+    async def update_post(
+        self,
+        post_id: str,
+        user: CurrentUser,
+        payload: UpdateFeedPostRequest,
+    ) -> FeedPost:
+        post = await self.session.get(FeedPost, post_id)
+        if post is None:
+            raise ValueError('Post not found')
+        if post.user_id != user.user_id:
+            raise PermissionError('You can edit only your own posts')
+
+        post.caption = payload.caption
+        post.image_url = payload.image_url
+        post.stats_json = payload.stats_json
+        await self.session.commit()
+        await self.session.refresh(post)
+        return post
+
+    async def delete_post(self, post_id: str, user: CurrentUser) -> None:
+        post = await self.session.get(FeedPost, post_id)
+        if post is None:
+            raise ValueError('Post not found')
+        if post.user_id != user.user_id:
+            raise PermissionError('You can delete only your own posts')
+
+        await self.session.delete(post)
+        await self.session.commit()
 
     async def create_comment(
         self,
