@@ -35,7 +35,11 @@ async def get_my_rank(
     rank = await service.get_global_rank(profile.id)
     if rank is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Profile not found')
-    return ProfileRankResponse(profile_id=profile.id, aura_points=profile.aura_points, global_rank=rank)
+    return ProfileRankResponse(
+        profile_id=profile.id,
+        aura_points=profile.aura_points,
+        global_rank=rank,
+    )
 
 
 @router.get('/me/streak', response_model=ProfileStreakResponse)

@@ -5,7 +5,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import CurrentUser
 from app.modules.profiles.models import Profile
-from app.modules.profiles.schemas import LeaderboardEntryResponse, ProfileStreakResponse, UpdateProfileRequest
+from app.modules.profiles.schemas import (
+    LeaderboardEntryResponse,
+    ProfileStreakResponse,
+    UpdateProfileRequest,
+)
 from app.modules.rides.models import RideSession, RideStatus
 
 
@@ -72,7 +76,9 @@ class ProfileService:
 
     async def list_leaderboard(self, limit: int = 20) -> list[LeaderboardEntryResponse]:
         result = await self.session.execute(
-            select(Profile).order_by(desc(Profile.aura_points), Profile.created_at.asc()).limit(limit)
+            select(Profile)
+            .order_by(desc(Profile.aura_points), Profile.created_at.asc())
+            .limit(limit)
         )
         profiles = list(result.scalars())
         return [
