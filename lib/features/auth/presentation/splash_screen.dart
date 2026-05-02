@@ -429,7 +429,7 @@ class _CornerAccent extends StatelessWidget {
       child: Transform(
         alignment: Alignment.center,
         transform: Matrix4.identity()
-          ..scale(mirrorX ? -1.0 : 1.0, mirrorY ? -1.0 : 1.0),
+          ..scaleByDouble (mirrorX ? -1.0 : 1.0, mirrorY ? -1.0 : 1.0, 1.0, 1.0),
         child: SizedBox(
           width: 44,
           height: 44,
