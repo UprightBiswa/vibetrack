@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VibeTrack Notifications</title>
+  <style>
+    :root { color-scheme: light dark; font-family: Inter, system-ui, sans-serif; }
+    body { margin: 0; background: #101417; color: #eef4f3; }
+    main { max-width: 860px; margin: 0 auto; padding: 32px 20px; }
+    h1 { margin: 0 0 20px; font-size: 28px; }
+    label { display: block; margin: 14px 0 6px; color: #b8c6c2; font-size: 13px; }
+    input, textarea, select {
+      width: 100%; box-sizing: border-box; border: 1px solid #31403b;
+      background: #18201d; color: #eef4f3; border-radius: 8px;
+      padding: 11px 12px; font: inherit;
+    }
+    textarea { min-height: 100px; resize: vertical; }
+    button {
+      border: 0; border-radius: 8px; padding: 11px 14px; font: inherit;
+      color: #07100d; background: #77e0b7; cursor: pointer; font-weight: 700;
+    }
+    button.secondary { background: #d7dee0; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+    .panel { border-top: 1px solid #26342f; padding-top: 18px; margin-top: 18px; }
+    .status { white-space: pre-wrap; margin-top: 16px; color: #b8c6c2; }
+    @media (max-width: 720px) { .row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>VibeTrack Notification Console</h1>
+  <label for="token">Superadmin Supabase access token</label>
+  <textarea id="token" placeholder="Paste bearer token here"></textarea>
+
+  <div class="actions">
+    <button class="secondary" type="button" onclick="loadRecipients()">Load users</button>
+  </div>
+
+  <div class="panel">
+    <label for="recipient">User with active device token</label>
+    <select id="recipient"></select>
+
+    <div class="row">
+      <div>
+        <label for="type">Type</label>
+        <input id="type" value="admin_announcement">
+      </div>
+      <div>
+        <label for="route">Route</label>
+        <input id="route" value="/notifications">
+      </div>
+    </div>
+
+    <label for="title">Title</label>
+    <input id="title" value="VibeTrack update">
+
+    <label for="body">Message</label>
+    <textarea id="body" placeholder="Write notification message"></textarea>
+
+    <div class="actions">
+      <button type="button" onclick="sendNotification()">Send notification</button>
+    </div>
+  </div>
+
+  <div id="status" class="status"></div>
+</main>
+<script>
+const statusEl = document.getElementById('status');
+const api = window.location.origin + '/api/v1';
+
+function authHeaders() {
+  const token = document.getElementById('token').value.trim();
+  return { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+}
+
+function setStatus(message) {
+  statusEl.textContent = message;
+}
+
+async function loadRecipients() {
+  setStatus('Loading users...');
+  const response = await fetch(api + '/admin/notification-recipients', {
+    headers: authHeaders(),
+  });
+  if (!response.ok) {
+    setStatus('Load failed: ' + response.status + ' ' + await response.text());
+    return;
+  }
+  const users = await response.json();
+  const select = document.getElementById('recipient');
+  select.innerHTML = '';
+  for (const user of users) {
+    const option = document.createElement('option');
+    option.value = user.user_id;
+    option.textContent = `${user.username} (${user.email || user.user_id}) - `
+      + `${user.device_count} device(s)`;
+    select.appendChild(option);
+  }
+  setStatus(`Loaded ${users.length} user(s) with active device tokens.`);
+}
+
+async function sendNotification() {
+  const recipient = document.getElementById('recipient').value;
+  if (!recipient) {
+    setStatus('Choose a user first.');
+    return;
+  }
+  const payload = {
+    recipient_user_id: recipient,
+    type: document.getElementById('type').value.trim() || 'system',
+    title: document.getElementById('title').value.trim(),
+    body: document.getElementById('body').value.trim(),
+    route: document.getElementById('route').value.trim(),
+    entity_id: '',
+    payload_json: {},
+  };
+  setStatus('Sending...');
+  const response = await fetch(api + '/notifications/user', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+  const text = await response.text();
+  if (!response.ok) {
+    setStatus('Send failed: ' + response.status + ' ' + text);
+    return;
+  }
+  setStatus('Notification sent and stored.\n' + text);
+}
+</script>
+</body>
+</html>
