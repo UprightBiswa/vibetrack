@@ -25,6 +25,25 @@ Urban fitness + social validation app MVP in Flutter.
 - Backend API integration for profile, ride session, and feed flows when `BACKEND_API_URL` is configured
 
 ## Run
+Local debug with automatic Render fallback:
+```bash
+flutter run --dart-define-from-file=env.local.json
+```
+
+Start the local backend first when you want the app to use local API:
+```bash
+cd backend
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8001 --app-dir .
+```
+
+If the local backend is not running, `env.local.json` makes the app retry the live Render API.
+
+Backend checks:
+```powershell
+.\scripts\check-backend.ps1 local
+.\scripts\check-backend.ps1 prod
+```
+
 ```bash
 flutter pub get
 flutter run \
@@ -40,6 +59,11 @@ Production run (recommended):
 flutter run --release --dart-define-from-file=env.production.json
 ```
 
+Production APK:
+```bash
+flutter build apk --release --dart-define-from-file=env.production.json
+```
+
 Create your `env.production.json` from the example in this README.
 
 If env vars are not provided, app runs in local demo mode (mock auth/data).
@@ -47,6 +71,7 @@ If env vars are not provided, app runs in local demo mode (mock auth/data).
 ## Backend API URL Notes
 - `BACKEND_API_URL` is the default backend URL.
 - `BACKEND_API_URL_ANDROID` overrides it only on Android builds.
+- `BACKEND_API_URL_FALLBACK` is used only outside production when the primary backend cannot be reached.
 - Android emulator: use `http://10.0.2.2:8001`
 - Physical Android device: use `http://YOUR_COMPUTER_LAN_IP:8001`
 - iOS simulator: use `http://127.0.0.1:8001`

@@ -55,7 +55,35 @@ Dio? createApiClient({
         );
         handler.next(response);
       },
-      onError: (error, handler) {
+      onError: (error, handler) async {
+        if (_shouldRetryWithFallback(error, env)) {
+          final fallbackOptions = error.requestOptions.copyWith(
+            baseUrl: env.effectiveBackendApiFallbackUrl,
+            extra: {
+              ...error.requestOptions.extra,
+              'backendFallbackAttempted': true,
+            },
+          );
+          AppLogger.warning(
+            'Backend primary failed; retrying ${fallbackOptions.path} '
+            'against ${env.effectiveBackendApiFallbackUrl}',
+            error: error,
+            stackTrace: error.stackTrace,
+          );
+          try {
+            final fallbackResponse = await dio.fetch<dynamic>(fallbackOptions);
+            handler.resolve(fallbackResponse);
+            return;
+          } on DioException catch (fallbackError) {
+            AppLogger.error(
+              'Backend fallback failed ${fallbackError.requestOptions.uri}',
+              error: fallbackError,
+              stackTrace: fallbackError.stackTrace,
+            );
+            error = fallbackError;
+          }
+        }
+
         final response = error.response;
         final responseDetail = response?.data is Map<String, dynamic>
             ? (response?.data['detail']?.toString() ?? response?.statusMessage)
@@ -67,7 +95,8 @@ Dio? createApiClient({
             'Connection timed out while contacting the backend API.',
           DioExceptionType.receiveTimeout =>
             'The backend API took too long to respond.',
-          DioExceptionType.badCertificate => 'The backend SSL certificate is invalid.',
+          DioExceptionType.badCertificate =>
+            'The backend SSL certificate is invalid.',
           DioExceptionType.badResponse =>
             responseDetail ?? 'The backend returned an unexpected response.',
           DioExceptionType.cancel => 'The request was cancelled.',
@@ -100,10 +129,28 @@ Dio? createApiClient({
   return dio;
 }
 
+bool _shouldRetryWithFallback(DioException error, AppEnv env) {
+  if (!env.hasBackendApiFallback) {
+    return false;
+  }
+  if (error.requestOptions.extra['backendFallbackAttempted'] == true) {
+    return false;
+  }
+  return error.type == DioExceptionType.connectionError ||
+      error.type == DioExceptionType.connectionTimeout ||
+      error.type == DioExceptionType.unknown;
+}
+
 String _buildConnectionErrorMessage(AppEnv env) {
+  if (env.hasBackendApiFallback) {
+    return 'Unable to reach the primary backend API at '
+        '${env.effectiveBackendApiUrl}. The app also tried the fallback API at '
+        '${env.effectiveBackendApiFallbackUrl}.';
+  }
   final hint = env.backendSetupHint;
   if (hint != null) {
     return 'Unable to reach the backend API at ${env.effectiveBackendApiUrl}. $hint';
   }
-  return 'Unable to reach the backend API at ${env.effectiveBackendApiUrl}. Make sure the FastAPI server is running and reachable from the device.';
+  return 'Unable to reach the backend API at ${env.effectiveBackendApiUrl}. '
+      'Make sure the FastAPI server is running and reachable from the device.';
 }

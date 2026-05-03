@@ -44,7 +44,10 @@ Future<void> main() async {
 
   final env = AppEnv.fromDefines();
   AppLogger.info(
-    'App boot env: mode=${env.appMode.name}, hasSupabase=${env.hasSupabase}, hasBackendApi=${env.hasBackendApi}, backend=${env.effectiveBackendApiUrl.isEmpty ? 'none' : env.effectiveBackendApiUrl}',
+    'App boot env: mode=${env.appMode.name}, '
+    'hasSupabase=${env.hasSupabase}, hasBackendApi=${env.hasBackendApi}, '
+    'backend=${env.effectiveBackendApiUrl.isEmpty ? 'none' : env.effectiveBackendApiUrl}, '
+    'fallback=${env.hasBackendApiFallback ? env.effectiveBackendApiFallbackUrl : 'none'}',
   );
   final backendSetupHint = env.backendSetupHint;
   if (backendSetupHint != null) {

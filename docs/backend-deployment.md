@@ -35,6 +35,25 @@ For a physical Android device, use your computer LAN IP for `BACKEND_API_URL_AND
 adb reverse tcp:8001 tcp:8001
 ```
 
+Use `env.local.json` for normal debug runs. It points to local API first and Render as fallback:
+
+```bash
+flutter run --dart-define-from-file=env.local.json
+```
+
+Use `env.production.json` for release/live builds. It points directly to Render:
+
+```bash
+flutter build apk --release --dart-define-from-file=env.production.json
+```
+
+Check backend health/readiness:
+
+```powershell
+.\scripts\check-backend.ps1 local
+.\scripts\check-backend.ps1 prod
+```
+
 ## Production API
 
 The repository now includes a Render Blueprint at `render.yaml`.

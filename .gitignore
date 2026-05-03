@@ -46,6 +46,8 @@ app.*.map.json
 # Local secrets
 backend/.env
 env.production.json
+env.local.json
+env.dev.json
 android/app/google-services.json
 backend/secrets/*.json
 

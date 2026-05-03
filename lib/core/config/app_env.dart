@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 enum AppMode { dev, staging, production }
 
 class AppEnv {
@@ -8,6 +10,7 @@ class AppEnv {
     required this.supabaseRedirectUrl,
     required this.backendApiUrl,
     required this.androidBackendApiUrl,
+    required this.backendApiFallbackUrl,
   });
 
   final AppMode appMode;
@@ -16,19 +19,27 @@ class AppEnv {
   final String supabaseRedirectUrl;
   final String backendApiUrl;
   final String androidBackendApiUrl;
+  final String backendApiFallbackUrl;
 
   bool get isProduction => appMode == AppMode.production;
   bool get hasSupabase => supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
   bool get hasSupabaseRedirectUrl => supabaseRedirectUrl.isNotEmpty;
   bool get hasBackendApi => effectiveBackendApiUrl.isNotEmpty;
+  bool get hasBackendApiFallback =>
+      !isProduction &&
+      backendApiFallbackUrl.isNotEmpty &&
+      backendApiFallbackUrl != effectiveBackendApiUrl;
   bool get hasRequiredProductionKeys => hasSupabase && hasSupabaseRedirectUrl;
 
   String get effectiveBackendApiUrl {
-    if (androidBackendApiUrl.isNotEmpty) {
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        androidBackendApiUrl.isNotEmpty) {
       return androidBackendApiUrl;
     }
     return backendApiUrl;
   }
+
+  String get effectiveBackendApiFallbackUrl => backendApiFallbackUrl;
 
   bool get isLoopbackBackendHost {
     final uri = Uri.tryParse(effectiveBackendApiUrl);
@@ -40,7 +51,8 @@ class AppEnv {
     if (!hasBackendApi) {
       return null;
     }
-    if (androidBackendApiUrl.isNotEmpty) {
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        androidBackendApiUrl.isNotEmpty) {
       return null;
     }
     if (!isLoopbackBackendHost) {
@@ -82,6 +94,10 @@ class AppEnv {
       'BACKEND_API_URL_ANDROID',
       defaultValue: '',
     );
+    const backendApiFallbackUrl = String.fromEnvironment(
+      'BACKEND_API_URL_FALLBACK',
+      defaultValue: '',
+    );
 
     return AppEnv(
       appMode: _parseMode(modeRaw),
@@ -90,6 +106,7 @@ class AppEnv {
       supabaseRedirectUrl: supabaseRedirectUrl,
       backendApiUrl: backendApiUrl,
       androidBackendApiUrl: androidBackendApiUrl,
+      backendApiFallbackUrl: backendApiFallbackUrl,
     );
   }
 }
