@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 
+import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -10,12 +11,22 @@ from app.core.database import init_db
 from app.core.logging import configure_logging
 
 configure_logging()
+logger = structlog.get_logger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     if settings.auto_create_tables:
-        await init_db()
+        try:
+            await init_db()
+        except Exception as exc:
+            if settings.is_production:
+                raise
+            logger.warning(
+                'database_auto_create_failed_dev_continuing',
+                error=str(exc),
+                error_type=exc.__class__.__name__,
+            )
     yield
 
 

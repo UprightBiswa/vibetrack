@@ -61,6 +61,10 @@ class Settings(BaseSettings):
         return f'{self.supabase_jwt_issuer}/user'
 
     @property
+    def is_production(self) -> bool:
+        return self.app_env.lower().strip() in {'production', 'prod'}
+
+    @property
     def superadmin_email_set(self) -> set[str]:
         return {
             email.strip().lower()
