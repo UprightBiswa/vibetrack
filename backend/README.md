@@ -62,6 +62,8 @@ Notes:
 pip install -e .[dev]
 ```
 
+Render installs production dependencies from `requirements.txt`.
+
 4. Copy env file
 
 ```bash

@@ -95,6 +95,7 @@ Render deployment:
 - Use the root `render.yaml` Blueprint.
 - Add the real Neon, Supabase, and Firebase values in the Render dashboard for all `sync: false` variables.
 - Use the Render URL as `BACKEND_API_URL` and `BACKEND_API_URL_ANDROID` in production Flutter builds.
+- Render installs backend dependencies from `backend/requirements.txt`.
 
 ## Tests
 ```bash

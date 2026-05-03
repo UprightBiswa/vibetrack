@@ -44,7 +44,7 @@ Deploy it in Render as a Blueprint and enter every `sync: false` value in the Re
 Render build command:
 
 ```bash
-pip install -e .
+pip install -r requirements.txt
 ```
 
 Render start command:
