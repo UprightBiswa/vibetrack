@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     api_v1_prefix: str = Field(default='/api/v1', alias='API_V1_PREFIX')
     project_name: str = Field(default='VibeTrack API', alias='PROJECT_NAME')
     auto_create_tables: bool = Field(default=True, alias='APP_AUTO_CREATE_TABLES')
+    cors_origins: str = Field(default='', alias='BACKEND_CORS_ORIGINS')
     database_url: str = Field(..., alias='DATABASE_URL')
     redis_url: str = Field(default='redis://localhost:6379/0', alias='REDIS_URL')
     supabase_url: str = Field(..., alias='SUPABASE_URL')
@@ -66,6 +67,10 @@ class Settings(BaseSettings):
             for email in self.superadmin_emails.split(',')
             if email.strip()
         }
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(',') if origin.strip()]
 
 
 @lru_cache

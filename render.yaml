@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: vibetrack-backend
+    runtime: python
+    rootDir: backend
+    region: singapore
+    plan: starter
+    buildCommand: pip install -e .
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --app-dir .
+    healthCheckPath: /api/v1/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: API_V1_PREFIX
+        value: /api/v1
+      - key: PROJECT_NAME
+        value: VibeTrack API
+      - key: APP_AUTO_CREATE_TABLES
+        value: "false"
+      - key: BACKEND_CORS_ORIGINS
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_JWT_AUDIENCE
+        value: authenticated
+      - key: SUPABASE_JWT_ISSUER
+        sync: false
+      - key: SUPABASE_JWKS_URL
+        sync: false
+      - key: SUPERADMIN_EMAILS
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: FCM_PROJECT_ID
+        sync: false
+      - key: FCM_CLIENT_EMAIL
+        sync: false
+      - key: FCM_PRIVATE_KEY
+        sync: false

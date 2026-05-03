@@ -37,6 +37,22 @@ adb reverse tcp:8001 tcp:8001
 
 ## Production API
 
+The repository now includes a Render Blueprint at `render.yaml`.
+
+Deploy it in Render as a Blueprint and enter every `sync: false` value in the Render dashboard. Keep these values out of git.
+
+Render build command:
+
+```bash
+pip install -e .
+```
+
+Render start command:
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port $PORT --app-dir .
+```
+
 Set backend host environment variables:
 
 ```env
@@ -44,18 +60,23 @@ APP_ENV=production
 API_V1_PREFIX=/api/v1
 PROJECT_NAME=VibeTrack API
 APP_AUTO_CREATE_TABLES=false
+BACKEND_CORS_ORIGINS=
 DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@NEON_HOST/neondb?sslmode=require&channel_binding=require
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_JWT_AUDIENCE=authenticated
 SUPERADMIN_EMAILS=admin@example.com
-GOOGLE_APPLICATION_CREDENTIALS=backend/secrets/firebase-service-account.json
+FCM_PROJECT_ID=your-firebase-project-id
+FCM_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com
+FCM_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n
 ```
 
-Production start command:
+Use `GOOGLE_APPLICATION_CREDENTIALS` only when the host supports mounting the Firebase service account JSON as a secret file. For Render env vars, prefer `FCM_PROJECT_ID`, `FCM_CLIENT_EMAIL`, and `FCM_PRIVATE_KEY`.
+
+After Render deploys, run this from the Render shell:
 
 ```bash
-uvicorn app.main:app --host 0.0.0.0 --port $PORT --app-dir .
+python scripts/check_runtime.py
 ```
 
 Then build Flutter with the live API URL:
@@ -78,3 +99,4 @@ Then build Flutter with the live API URL:
 - Store Firebase service account JSON as a host secret, not in git.
 - Use HTTPS for `BACKEND_API_URL` in production.
 - Keep Supabase Auth and Firebase project IDs matched with the app build.
+- Keep `env.production.json`, `backend/.env`, `android/app/google-services.json`, and `backend/secrets/*.json` uncommitted.

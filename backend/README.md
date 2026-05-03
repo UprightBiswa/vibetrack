@@ -34,11 +34,13 @@ This backend is designed to:
 ### Optional now
 - `SUPABASE_ANON_KEY`
 - `SUPERADMIN_EMAILS`
+- `BACKEND_CORS_ORIGINS`
 
 ### Needed later for push notifications
 - `FCM_PROJECT_ID`
 - `FCM_CLIENT_EMAIL`
 - `FCM_PRIVATE_KEY`
+- or `GOOGLE_APPLICATION_CREDENTIALS`
 
 ### Needed later for Redis
 - `REDIS_URL`
@@ -48,6 +50,7 @@ Notes:
 - The backend can derive JWT issuer and JWKS URL from `SUPABASE_URL`
 - The backend usually does **not** need the Supabase anon key for token verification
 - In development, the app auto-creates the current SQLAlchemy tables on startup when `APP_AUTO_CREATE_TABLES=true`
+- In production, set `APP_AUTO_CREATE_TABLES=false` after the target Neon DB already has the tables
 
 ## Local setup
 
@@ -73,6 +76,33 @@ copy .env.example .env
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8001 --app-dir .
+```
+
+7. Verify runtime configuration without printing secrets
+
+```bash
+python scripts/check_runtime.py
+```
+
+## Render deployment
+
+The repo includes `render.yaml` at the repository root.
+
+Use Render Blueprint deployment and enter all `sync: false` variables in the Render dashboard:
+- `DATABASE_URL`
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPERADMIN_EMAILS`
+- `FCM_PROJECT_ID`
+- `FCM_CLIENT_EMAIL`
+- `FCM_PRIVATE_KEY`
+
+For `FCM_PRIVATE_KEY`, paste the Firebase private key with `\n` escaped newlines. The backend converts it back before initializing Firebase Admin.
+
+After deployment, verify:
+
+```bash
+python scripts/check_runtime.py
 ```
 
 ## Current DB-backed routes
@@ -116,7 +146,7 @@ To enable push notifications:
 2. Place your Firebase Admin service account JSON at `backend/secrets/firebase-service-account.json`
 3. Add to `backend/.env`:
 ```env
-GOOGLE_APPLICATION_CREDENTIALS=backend/secrets/firebase-service-account.json
+GOOGLE_APPLICATION_CREDENTIALS=secrets/firebase-service-account.json
 ```
 
 Backend routes:

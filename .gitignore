@@ -48,3 +48,9 @@ backend/.env
 env.production.json
 android/app/google-services.json
 backend/secrets/*.json
+
+# Python local tooling
+.venv/
+backend/.venv/
+.ruff_cache/
+backend/.ruff_cache/

@@ -85,6 +85,17 @@ Example for a physical Android device:
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8001 --app-dir .
 ```
 
+Runtime check:
+```bash
+cd backend
+.\.venv\Scripts\python.exe scripts\check_runtime.py
+```
+
+Render deployment:
+- Use the root `render.yaml` Blueprint.
+- Add the real Neon, Supabase, and Firebase values in the Render dashboard for all `sync: false` variables.
+- Use the Render URL as `BACKEND_API_URL` and `BACKEND_API_URL_ANDROID` in production Flutter builds.
+
 ## Tests
 ```bash
 flutter analyze
